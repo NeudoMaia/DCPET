@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCPET - Defesa Civil de Fortaleza | Monitoramento de Estresse Térmico Animal</title>
+    
+    <!-- Leaflet CSS para o mapa interativo real -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- CSS principal com o Design System Claro do DCCALOR -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Chart.js para gráficos dinâmicos de tendência -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Lucide Icons via CDN para ícones elegantes -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-layout">
+        
+        <!-- --- HEADER --- -->
+        <header class="main-header">
+            <div class="header-brand">
+                <div class="brand-logo">PET</div>
+                <div class="brand-text-container">
+                    <h1 class="brand-title">DCPET <span class="brand-divider">|</span> <span class="brand-subtitle" id="header-tab-title">Visão Geral</span></h1>
+                    <p class="brand-description">Defesa Civil de Fortaleza • Proteção Animal e Monitoramento de Estresse Térmico</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div class="api-status-badge">
+                    <span class="status-led" id="api-led"></span>
+                    <span class="status-text" id="api-status-text">Simulação Offline</span>
+                </div>
+                <div class="header-divider"></div>
+                <div class="header-clock">
+                    <div class="clock-time" id="current-time">12:00:00</div>
+                    <div class="clock-date" id="current-date">Quinta-feira, 18 de Junho</div>
+                </div>
+                <div class="header-divider"></div>
+                <div class="user-profile-badge">OP</div>
+            </div>
+        </header>
+
+        <!-- --- MAIN CONTAINER --- -->
+        <div class="main-container">
+            
+            <!-- --- SIDEBAR --- -->
+            <aside class="sidebar">
+                <div class="sidebar-menu">
+                    
+                    <div class="menu-group">
+                        <span class="group-title">Dashboard</span>
+                        <button class="menu-item active" data-tab="map">
+                            <span class="menu-indicator"></span>
+                            <i data-lucide="map"></i>
+                            <span class="menu-label">Monitoramento</span>
+                        </button>
+                        <button class="menu-item" data-tab="protocols">
+                            <span class="menu-indicator"></span>
+                            <i data-lucide="shield-check"></i>
+                            <span class="menu-label">Protocolo Fisiológico</span>
+                        </button>
+                    </div>
+
+                    <div class="menu-group">
+                        <span class="group-title">Infraestrutura</span>
+                        <button class="menu-item" data-tab="iot">
+                            <span class="menu-indicator"></span>
+                            <i data-lucide="radio"></i>
+                            <span class="menu-label">Estações IoT</span>
+                        </button>
+                        <button class="menu-item" data-tab="street-animals">
+                            <span class="menu-indicator"></span>
+                            <i data-lucide="heart"></i>
+                            <span class="menu-label">Animais de Rua</span>
+                        </button>
+                    </div>
+
+                </div>
+
+                <div class="sidebar-status-card">
+                    <p class="status-card-title">Status do Sistema</p>
+                    <div class="status-card-row">
+                        <div class="status-badge-container">
+                            <span class="status-led led-green" id="sidebar-led"></span>
+                            <span class="status-label" id="sys-general-status">ESTÁVEL</span>
+                        </div>
+                        <span class="status-version">v4.0</span>
+                    </div>
+                    <div class="status-card-footer">
+                        <p>IET-Pet (Fisiológico) + IDW</p>
+                        <p id="sidebar-api-type">API Simulada</p>
+                    </div>
+                </div>
+            </aside>
+            
+            <!-- --- CONTENT WORKSPACE --- -->
+            <main class="content-workspace">
+                
+                <!-- === TAB 1: MONITORAMENTO === -->
+                <div class="tab-pane active" id="tab-map">
+                    
+                    <!-- Metrics Row -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-info">
+                                <p class="metric-label">Estação Mais Quente (IET-Pet)</p>
+                                <h3 class="metric-value" id="card-hottest-name">CENTRO</h3>
+                                <p class="metric-sub" id="card-hottest-temp">39.2°C</p>
+                            </div>
+                            <div class="metric-icon bg-red-100 text-red-600">
+                                <i data-lucide="flame"></i>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-info">
+                                <p class="metric-label">Estação Mais Fresca (IET-Pet)</p>
+                                <h3 class="metric-value" id="card-coolest-name">MUCURIPE</h3>
+                                <p class="metric-sub" id="card-coolest-temp">24.5°C</p>
+                            </div>
+                            <div class="metric-icon bg-cyan-100 text-cyan-600">
+                                <i data-lucide="droplets"></i>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-info">
+                                <p class="metric-label">Sensores Ativos</p>
+                                <h3 class="metric-value" id="card-active-sensors">11 / 11</h3>
+                                <p class="metric-sub">Malha Operacional</p>
+                            </div>
+                            <div class="metric-icon bg-emerald-100 text-emerald-600">
+                                <i data-lucide="wifi"></i>
+                            </div>
+                        </div>
+
+                        <div class="metric-card border-orange-500">
+                            <div class="metric-info">
+                                <p class="metric-label text-orange-700 font-bold">Ponto de Atenção (7 Dias)</p>
+                                <h3 class="metric-value text-slate-800" id="card-attention-name">CENTRO</h3>
+                                <p class="metric-sub text-orange-600" id="card-attention-val">Média: 34.5°C</p>
+                            </div>
+                            <div class="metric-icon bg-orange-100 text-orange-600">
+                                <i data-lucide="alert-triangle"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Map and List Grid -->
+                    <div class="workspace-grid">
+                        
+                        <!-- Coluna 8: Mapa Interativo -->
+                        <div class="map-card-wrapper col-span-8">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="map" class="text-blue-600"></i> Mapa de Estresse Térmico Animal (Fortaleza)</h3>
+                                <p class="card-subtitle">Exibição espacial das estações oficiais e interpolados de risco</p>
+                            </div>
+                            <div class="map-container-relative">
+                                <div class="map-leaflet-container" id="map">
+                                    <!-- Leaflet vai carregar aqui -->
+                                </div>
+                                <div class="map-legend-overlay">
+                                    <h4>Nível de Alerta de Calor (IET-Pet)</h4>
+                                    <div class="legend-items">
+                                        <div class="legend-item"><span class="legend-color" style="background-color: var(--color-low);"></span> Seguro (&lt; 27°C)</div>
+                                        <div class="legend-item"><span class="legend-color" style="background-color: var(--color-moderate);"></span> Atenção (27°C - 31.9°C)</div>
+                                        <div class="legend-item"><span class="legend-color" style="background-color: var(--color-high);"></span> Alerta (32°C - 36.9°C)</div>
+                                        <div class="legend-item"><span class="legend-color" style="background-color: var(--color-critical);"></span> Crítico (&ge; 37°C)</div>
+                                    </div>
+                                    <div class="legend-footer">
+                                        <span class="legend-dot-dashed"></span> Estação IoT Georreferenciada
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coluna 4: Lista de Estações -->
+                        <div class="list-card-wrapper col-span-4">
+                            <div class="card-header-flex">
+                                <div>
+                                    <h3 class="card-title"><i data-lucide="radio" class="text-blue-600"></i> Estações Meteorológicas</h3>
+                                    <p class="card-subtitle">Selecione para focar dados</p>
+                                </div>
+                                <span class="badge badge-low" id="weather-update-time">Atualizado: Agora</span>
+                            </div>
+                            <div class="stations-cards-container" id="stations-list">
+                                <!-- Estações carregadas via JS -->
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Histórico / Gráficos -->
+                    <div class="workspace-full-row">
+                        <div class="chart-card-wrapper">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="line-chart" class="text-blue-600"></i> Tendência de Temperatura e Risco (24h)</h3>
+                                <p class="card-subtitle" id="focused-station-name">Estação: Centro</p>
+                            </div>
+                            <div class="chart-box">
+                                <canvas id="trendsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- === TAB 2: PROTOCOLO FISIOLÓGICO === -->
+                <div class="tab-pane" id="tab-protocols">
+                    
+                    <div class="workspace-grid">
+                        <!-- Lado Esquerdo: Form de Simulação -->
+                        <div class="card-wrapper col-span-6">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="calculator" class="text-blue-600"></i> Calculadora Fisiológica de Passeios</h3>
+                                <p class="card-subtitle">Calcule o estresse e o risco de queimadura das patinhas com base no microclima</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="sim-station">Estação de Referência</label>
+                                        <select id="sim-station" class="form-control">
+                                            <!-- Preenchido via JS -->
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="sim-breed">Fator Fisiológico (Raça / Tipo)</label>
+                                        <select id="sim-breed" class="form-control">
+                                            <option value="normal">Normal / SRD (Pelo Curto)</option>
+                                            <option value="brachy">Braquicefálico (Pug, Bulldog, Shih-tzu, Boxer) [+3°C Estresse]</option>
+                                            <option value="double">Pelagem Longa / Dupla [+2°C Estresse]</option>
+                                            <option value="hairless">Sem Pelo (Sphynx, Cão de Crista) [Máxima Sensibilidade UV]</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="sim-surface">Tipo de Solo / Superfície</label>
+                                        <select id="sim-surface" class="form-control">
+                                            <option value="asphalt">Asfalto Escuro (Absorve Radiação Máxima)</option>
+                                            <option value="concrete">Concreto Claro / Calçada</option>
+                                            <option value="grass">Grama / Terra Batida (Fresca)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="sim-time">Horário Programado do Passeio</label>
+                                        <select id="sim-time" class="form-control">
+                                            <option value="0">Madrugada (00h - 05h) [Sem Radiação]</option>
+                                            <option value="1">Início da Manhã (06h - 08h) [Radiação Baixa]</option>
+                                            <option value="2">Meio da Manhã (09h - 11h) [Radiação Média]</option>
+                                            <option value="3" selected>Pico Solar (11h - 14h) [Radiação Máxima]</option>
+                                            <option value="4">Tarde (14h - 17h) [Radiação Alta]</option>
+                                            <option value="5">Noite (18h - 23h) [Sem Radiação / Calor Retido]</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <button class="btn-simulate-calc" id="btn-run-simulation">
+                                    <i data-lucide="play"></i> Executar Simulação Fisiológica
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Lado Direito: Resultados -->
+                        <div class="card-wrapper col-span-6 flex-flex-column" id="calc-results-card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="activity" class="text-blue-600"></i> Laudo do Microclima Animal</h3>
+                                <p class="card-subtitle">Indicadores resultantes da modelagem fisiológica</p>
+                            </div>
+                            <div class="card-body-flex">
+                                
+                                <div class="simulator-results-panel" id="sim-results" style="display: flex;">
+                                    <div class="risk-meter-container-light">
+                                        <div class="gauge-wrapper-light">
+                                            <svg class="gauge-svg" viewBox="0 0 80 80">
+                                                <circle class="gauge-bg" cx="40" cy="40" r="35" />
+                                                <circle class="gauge-fill" id="sim-gauge-fill" cx="40" cy="40" r="35" stroke="var(--color-critical)" />
+                                            </svg>
+                                            <div class="gauge-value" id="sim-index-val">--</div>
+                                        </div>
+                                        <div class="risk-verdict-light">
+                                            <h3 id="sim-verdict-title">Selecione e calcule</h3>
+                                            <p id="sim-verdict-desc">Configure os fatores ao lado e clique em calcular para obter o veredito de segurança.</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Warning box de chão quente -->
+                                    <div class="warning-box warning-box-low" id="paw-warning">
+                                        <i data-lucide="check-circle"></i>
+                                        <div>
+                                            Aguardando simulação.
+                                        </div>
+                                    </div>
+
+                                    <!-- Recomendações -->
+                                    <div class="recs-box-wrapper">
+                                        <p class="recs-title">Recomendações e Contraindicações:</p>
+                                        <div class="recommendations-list-light" id="sim-recs">
+                                            <!-- Preenchido via JS -->
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Abas Educativas (Protocolo Comparativo Fisiológico) -->
+                    <div class="workspace-full-row">
+                        <div class="card-wrapper">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="book-open" class="text-blue-600"></i> Protocolo Educativo: Diferenças Fisiológicas Cruciais</h3>
+                                <p class="card-subtitle">Abaixo estão os pilares científicos da vulnerabilidade animal em Fortaleza</p>
+                            </div>
+                            
+                            <div class="edu-container">
+                                <div class="edu-tabs">
+                                    <button class="edu-tab-btn active" data-tab="resfriamento">1. Suor vs Ofegação</button>
+                                    <button class="edu-tab-btn" data-tab="chao-quente">2. Efeito Chão Quente</button>
+                                    <button class="edu-tab-btn" data-tab="isolamento">3. Pelagem Isolante</button>
+                                    <button class="edu-tab-btn" data-tab="seguranca">4. Margem de Segurança</button>
+                                    <button class="edu-tab-btn" data-tab="raca">5. O Fator Raça</button>
+                                    <button class="edu-tab-btn" data-tab="autonomia">6. Autonomia Comportamental</button>
+                                </div>
+
+                                <div class="edu-contents">
+                                    <!-- Aba 1 -->
+                                    <div class="edu-tab-content active" id="tab-resfriamento">
+                                        <div class="edu-text">
+                                            <h3>O Mecanismo de Resfriamento</h3>
+                                            <p>Humanos regulam a temperatura interna através de milhões de glândulas sudoríparas espalhadas pela pele. A evaporação do suor rouba o calor de forma altamente eficiente.</p>
+                                            <p><strong>Cães e Gatos quase não suam</strong> (apenas nas almofadas das patas). Eles dependem quase exclusivamente da <strong>taquipneia (ofegar)</strong> para evaporar a água da língua, boca e vias respiratórias.</p>
+                                            <div class="edu-info-box">
+                                                <i data-lucide="info"></i>
+                                                <span><strong>A Armadilha de Fortaleza:</strong> Em dias com umidade relativa do ar muito alta (acima de 70-80%), a água do ofego não consegue evaporar, tornando o sistema de refrigeração deles ineficaz. O animal superaquece mesmo na sombra.</span>
+                                            </div>
+                                        </div>
+                                        <div class="edu-graphic">🥵🐶</div>
+                                    </div>
+                                    <!-- Aba 2 -->
+                                    <div class="edu-tab-content" id="tab-chao-quente">
+                                        <div class="edu-text">
+                                            <h3>O Efeito Chão Quente</h3>
+                                            <p>Humanos andam eretos e com calçados, mantendo seus órgãos vitais e cérebro a mais de 1,5 metros do chão.</p>
+                                            <p>Cães e gatos andam descalços e com a barriga e o peito a poucos centímetros do solo.</p>
+                                            <div class="edu-info-box warning">
+                                                <i data-lucide="alert-triangle"></i>
+                                                <span>Em Fortaleza, com o sol do meio-dia, o asfalto absorve radiação e pode atingir de <strong>55°C a 65°C</strong>. O calor irradiado para cima cria um microclima de "forno" ao nível do solo, aumentando a temperatura percebida pelo animal em até 15°C comparado com a leitura padrão da estação meteorológica.</span>
+                                            </div>
+                                        </div>
+                                        <div class="edu-graphic">🔥🐾</div>
+                                    </div>
+                                    <!-- Aba 3 -->
+                                    <div class="edu-tab-content" id="tab-isolamento">
+                                        <div class="edu-text">
+                                            <h3>A Roupa Permanente</h3>
+                                            <p>Cães e gatos vestem um "casaco de inverno" de pelos permanente. A pelagem atua como um isolante térmico bidirecional.</p>
+                                            <p>O pelo protege contra o sol direto, bloqueando a radiação solar (evitando queimaduras de pele severas e câncer de pele, principalmente em animais de pelagem clara). Por outro lado, ele retém o calor corporal gerado internamente quando a temperatura ambiental é extremamente alta.</p>
+                                            <div class="edu-info-box">
+                                                <i data-lucide="shield-check"></i>
+                                                <span><strong>Cuidado com a Tosa:</strong> Nunca realize tosa muito rente à pele, pois remove a única barreira contra os raios UV do sol. O resfriamento deve ser feito molhando a barriga e as patinhas, ou fornecendo brisas constantes.</span>
+                                            </div>
+                                        </div>
+                                        <div class="edu-graphic">🐩🦁</div>
+                                    </div>
+                                    <!-- Aba 4 -->
+                                    <div class="edu-tab-content" id="tab-seguranca">
+                                        <div class="edu-text">
+                                            <h3>Margem de Segurança Térmica</h3>
+                                            <p>A temperatura humana basal é ~36,5°C e os riscos severos iniciam-se aos 40°C, garantindo uma margem de segurança de cerca de 3,5°C.</p>
+                                            <p>Cães e gatos têm a temperatura natural muito maior (entre 38°C e 39,2°C). O colapso multissistêmico por hipertermia ou insolação fatal ocorre a partir de <strong>40,5°C a 41°C</strong>.</p>
+                                            <div class="edu-info-box warning">
+                                                <i data-lucide="activity"></i>
+                                                <span><strong>Minutos Contados:</strong> O limiar do colapso animal é extremamente apertado (apenas 1,5°C acima da temperatura normal). A progressão de "ofegante" para coagulação intravascular e desmaio sob o sol direto pode ocorrer em menos de 15 minutos.</span>
+                                            </div>
+                                        </div>
+                                        <div class="edu-graphic">⏳🐾</div>
+                                    </div>
+                                    <!-- Aba 5 -->
+                                    <div class="edu-tab-content" id="tab-raca">
+                                        <div class="edu-text">
+                                            <h3>Fatores Anatômicos e Raça</h3>
+                                            <p>Algumas raças possuem anomalias craniofaciais que prejudicam severamente a passagem do ar nas vias aéreas.</p>
+                                            <p>Cães **Braquicefálicos** (como Pugs, Bulldogs, Shih-tzus e Boxers) e gatos Persas têm narinas estreitas e o palato mole alongado. Para eles, o ato de ofegar é altamente ineficiente e requer um esforço físico enorme.</p>
+                                            <div class="edu-info-box warning">
+                                                <i data-lucide="alert-circle"></i>
+                                                <span><strong>Fator de Alto Risco:</strong> Sob calor intenso em Fortaleza, uma raça braquicefálica pode sofrer asfixia térmica e vir a óbito em menos de 15 a 20 minutos de exposição solar ou estresse moderado. Esses animais precisam de prioridade absoluta.</span>
+                                            </div>
+                                        </div>
+                                        <div class="edu-graphic">🐶🚨</div>
+                                    </div>
+                                    <!-- Aba 6 -->
+                                    <div class="edu-tab-content" id="tab-autonomia">
+                                        <div class="edu-text">
+                                            <h3>Autonomia e Comportamento</h3>
+                                            <p>Humanos conseguem identificar o início dos sintomas de calor e tomam atitudes autônomas (beber água gelada, ir para a sombra, usar ventilador, retirar roupas).</p>
+                                            <p>Animais dependem inteiramente de seus tutores ou do ambiente. Cães em quintais cimentados, lajes ou trancados em veículos não têm como fugir. Adicionalmente, cães brincalhões continuam correndo mesmo quando estão superaquecidos, sem reconhecer seu próprio limite fisiológico.</p>
+                                            <div class="edu-info-box">
+                                                <i data-lucide="help-circle"></i>
+                                                <span><strong>O que fazer:</strong> Nunca espere o animal parar de brincar por conta própria. Mantenha potes de água sempre na sombra (água no sol esquenta e eles rejeitam) e faça hidratação forçada se necessário.</span>
+                                            </div>
+                                        </div>
+                                        <div class="edu-graphic">💔🐾</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- === TAB 3: ESTAÇÕES IoT / PLUGFIELD === -->
+                <div class="tab-pane" id="tab-iot">
+                    
+                    <div class="workspace-grid">
+                        
+                        <!-- Coluna 1: Painel de Integração Plugfield -->
+                        <div class="card-wrapper col-span-4">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="satellite" class="text-blue-600"></i> Integração Plugfield API</h3>
+                                <p class="card-subtitle">Insira suas credenciais da API para conectar estações reais da Defesa Civil</p>
+                            </div>
+                            <div class="card-body">
+                                <form id="form-plugfield-config" class="space-y-4">
+                                    <div class="form-group">
+                                        <label for="plugfield-username">Usuário (Username)</label>
+                                        <input type="text" id="plugfield-username" class="form-control" placeholder="usuario@fortaleza.ce.gov.br" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="plugfield-password">Senha (Password)</label>
+                                        <input type="password" id="plugfield-password" class="form-control" placeholder="••••••••" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="plugfield-apikey">Chave de API (X-API-KEY)</label>
+                                        <input type="text" id="plugfield-apikey" class="form-control" placeholder="pf_key_..." />
+                                    </div>
+
+                                    <div class="flex-buttons-row">
+                                        <button type="button" class="btn-cancel" id="btn-clear-plugfield">Limpar</button>
+                                        <button type="submit" class="btn-simulate-calc" style="margin-top:0;" id="btn-save-plugfield">Conectar e Salvar</button>
+                                    </div>
+                                </form>
+
+                                <div class="plugfield-connection-status" id="plugfield-conn-panel">
+                                    <p class="conn-status-label">Status da Conexão:</p>
+                                    <div class="conn-status-badge is-disconnected" id="plugfield-conn-badge">
+                                        <span class="status-led led-red" id="plugfield-conn-led"></span>
+                                        <span id="plugfield-conn-text">Desconectado (Usando Simulação)</span>
+                                    </div>
+                                    
+                                    <div class="connection-logs-box" id="plugfield-conn-logs">
+                                        [Logs] Aguardando credenciais...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coluna 2: Adicionar Sensor Manual e Listagem IoT -->
+                        <div class="col-span-8 space-y-6">
+                            
+                            <!-- Registrar Sensor Manual -->
+                            <div class="card-wrapper">
+                                <div class="card-header">
+                                    <h3 class="card-title"><i data-lucide="plus-circle" class="text-blue-600"></i> Registrar Novo Sensor na Malha</h3>
+                                    <p class="card-subtitle">Cadastre uma nova estação manual/IoT georreferenciada no mapa de estresse</p>
+                                </div>
+                                <div class="card-body">
+                                    <form id="form-add-sensor" class="form-grid">
+                                        <div class="form-group">
+                                            <label for="sensor-name">Nome da Estação / Local</label>
+                                            <input type="text" id="sensor-name" required class="form-control" placeholder="Ex: Defesa Civil - Cocó" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="sensor-bairro">Bairro</label>
+                                            <input type="text" id="sensor-bairro" required class="form-control" placeholder="Ex: Cocó" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="sensor-lat">Latitude</label>
+                                            <input type="number" step="0.000001" required id="sensor-lat" class="form-control" placeholder="Ex: -3.7440" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="sensor-lng">Longitude</label>
+                                            <input type="number" step="0.000001" required id="sensor-lng" class="form-control" placeholder="Ex: -38.4850" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="sensor-temp">Temperatura de Referência (°C)</label>
+                                            <input type="number" step="0.1" required id="sensor-temp" class="form-control" placeholder="30.0" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="sensor-hum">Umidade de Referência (%)</label>
+                                            <input type="number" required id="sensor-hum" class="form-control" placeholder="65" />
+                                        </div>
+                                        <div class="form-group col-span-2">
+                                            <button type="submit" class="btn-simulate-calc" style="margin-top:0;">
+                                                <i data-lucide="plus"></i> Adicionar Sensor à Malha
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Listagem das estações IoT customizadas -->
+                            <div class="card-wrapper">
+                                <div class="card-header-flex">
+                                    <div>
+                                        <h3 class="card-title"><i data-lucide="radio" class="text-blue-600"></i> Estações IoT customizadas e Plugfield</h3>
+                                        <p class="card-subtitle">Sensores cadastrados em execução na malha do município</p>
+                                    </div>
+                                    <div class="badge badge-low" id="iot-devices-count">0 Ativas</div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="iot-list-grid" id="iot-stations-container">
+                                        <!-- Carregado via JS -->
+                                        <div class="empty-list-state">
+                                            <i data-lucide="satellite" class="w-12 h-12 opacity-30 mb-2"></i>
+                                            <p>Nenhum sensor IoT customizado adicionado.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- === TAB 4: ANIMAIS DE RUA === -->
+                <div class="tab-pane" id="tab-street-animals">
+                    
+                    <div class="top-hot-stations-banner">
+                        <div class="banner-header">
+                            <h3 class="banner-title"><i data-lucide="flame" class="text-red-500"></i> Monitor de Pontos Críticos (Bairros Mais Quentes no Momento)</h3>
+                            <p class="banner-subtitle">As 3 maiores temperaturas reais registradas pelos sensores na malha municipal</p>
+                        </div>
+                        <div class="top-hot-stations-row" id="top-hot-stations-container">
+                            <!-- Preenchido via JS com os 3 bairros mais quentes -->
+                        </div>
+                    </div>
+                    
+                    <div class="card-wrapper">
+                        <div class="card-header-flex">
+                            <div>
+                                <h3 class="card-title"><i data-lucide="heart" class="text-red-500"></i> Proteção de Animais de Rua (Colônias Comunitárias)</h3>
+                                <p class="card-subtitle">Gerencie colônias de cães/gatos comunitários em ilhas de calor e registre a provisão física de bebedouros de água e sombras</p>
+                            </div>
+                            <button class="btn-add-colony" id="btn-open-colony-modal">
+                                <i data-lucide="plus"></i> Cadastrar Colônia
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="colonies-grid" id="colony-container">
+                                <!-- Carregado dinamicamente via JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </main>
+
+        </div>
+
+        <!-- --- MODAL DE CADASTRO DE COLÔNIA --- -->
+        <div class="modal-overlay" id="colony-modal">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3><i data-lucide="plus-circle" class="text-blue-600"></i> Cadastrar Colônia de Rua</h3>
+                    <button class="btn-close-modal" id="btn-close-colony-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="col-name">Identificação / Localização da Colônia</label>
+                        <input type="text" id="col-name" class="form-control" placeholder="Ex: Praça das Flores, Aldeota">
+                    </div>
+                    <div class="form-group">
+                        <label for="col-size">População Estimada de Animais</label>
+                        <input type="number" id="col-size" class="form-control" placeholder="Ex: 8" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="col-type">Espécie Predominante</label>
+                        <select id="col-type" class="form-control">
+                            <option value="gatos">Somente Gatos</option>
+                            <option value="caes">Somente Cães</option>
+                            <option value="misto">Misto (Cães e Gatos)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="col-micro">Estação Climatológica de Referência (Microclima)</label>
+                        <select id="col-micro" class="form-control">
+                            <!-- Preenchido dinamicamente via JS -->
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cancel" id="btn-cancel-colony">Cancelar</button>
+                    <button class="btn-simulate-calc" style="margin-top:0;" id="btn-save-colony">Salvar Colônia</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- --- FOOTER --- -->
+        <footer class="app-footer">
+            <div class="footer-left">
+                <span class="footer-item"><span class="footer-dot"></span> Coord Centro: -3.7275, -38.5270</span>
+                <span class="footer-item"><span class="footer-dot"></span> Fuso: UTC-3 (Fortaleza)</span>
+            </div>
+            <div class="footer-right">
+                <span class="footer-sync"><span class="sync-dot"></span> Sincronização: Automática (1 min)</span>
+                <span class="footer-version">DCPET v4.0.0 - DEFESA CIVIL DE FORTALEZA • PROTEÇÃO ANIMAL</span>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Script Principal da Aplicação -->
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "dcpet-defesa-civil",
+  "rewrites": [
+    {
+      "source": "/plugfield-api/:path*",
+      "destination": "https://prod-api.plugfield.com.br/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    }
+  ]
+}
