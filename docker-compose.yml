@@ -1,0 +1,19 @@
+﻿services:
+  dcpet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dcpet-app
+    restart: always
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

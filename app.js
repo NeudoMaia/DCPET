@@ -169,9 +169,118 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- ELEMENTOS E INICIALIZAÇÃO DO MAPA LEAFLET ---
+    const CARTO_API_KEY = 'cb1_2t7z_1_b4192d625bdc678b8f9125ad';
     let map = null;
     let mapMarkers = {};
     let mapCircles = {};
+    let municipalityLayer = null;
+    let neighborhoodsLayer = null;
+    let bairrosGeoDataCache = null;
+
+    // Carregar e Renderizar Limite Municipal de Fortaleza (Permanente - Base Oficial IBGE)
+    async function loadMunicipalityBoundary() {
+        if (!map || municipalityLayer) return;
+        try {
+            const res = await fetch('./data/municipio_fortaleza.json');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const geoData = await res.json();
+            municipalityLayer = L.geoJSON(geoData, {
+                style: {
+                    color: '#1d4ed8', // Azul royal escuro
+                    weight: 2.5,
+                    opacity: 0.9,
+                    dashArray: '8, 6',
+                    fillColor: '#3b82f6',
+                    fillOpacity: 0.02
+                },
+                interactive: false
+            }).addTo(map);
+        } catch (err) {
+            console.warn('[DCPET] Aviso ao carregar limite municipal:', err);
+        }
+    }
+
+    // Carregar e Alternar Camada com os 121 Bairros Oficiais de Fortaleza (IPLANFOR / Seuma)
+    async function toggleNeighborhoodsLayer(visible) {
+        if (!map) return;
+
+        const legendBairrosItem = document.getElementById('legend-bairros-item');
+        if (legendBairrosItem) {
+            legendBairrosItem.style.display = visible ? 'flex' : 'none';
+        }
+
+        if (!visible) {
+            if (neighborhoodsLayer) {
+                map.removeLayer(neighborhoodsLayer);
+                neighborhoodsLayer = null;
+            }
+            return;
+        }
+
+        const renderBairros = (geoData) => {
+            if (!map) return;
+            if (neighborhoodsLayer) {
+                map.removeLayer(neighborhoodsLayer);
+            }
+
+            neighborhoodsLayer = L.geoJSON(geoData, {
+                style: () => ({
+                    color: '#475569',
+                    weight: 1.2,
+                    opacity: 0.7,
+                    dashArray: '4, 4',
+                    fillColor: '#64748b',
+                    fillOpacity: 0.04
+                }),
+                onEachFeature: (feature, layer) => {
+                    const nome = feature.properties?.nome || 'Bairro';
+                    layer.bindTooltip(`
+                        <div style="font-family: inherit; font-size: 11px; font-weight: bold; color: #1e293b; padding: 2px 4px;">
+                            ${nome}
+                        </div>
+                    `, {
+                        permanent: false,
+                        direction: 'center',
+                        className: 'bairro-tooltip-popup'
+                    });
+
+                    layer.on({
+                        mouseover: (e) => {
+                            const target = e.target;
+                            target.setStyle({
+                                weight: 2.2,
+                                color: '#2563eb',
+                                fillColor: '#3b82f6',
+                                fillOpacity: 0.18,
+                                dashArray: ''
+                            });
+                            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                                target.bringToFront();
+                            }
+                        },
+                        mouseout: (e) => {
+                            if (neighborhoodsLayer) {
+                                neighborhoodsLayer.resetStyle(e.target);
+                            }
+                        }
+                    });
+                }
+            }).addTo(map);
+        };
+
+        if (bairrosGeoDataCache) {
+            renderBairros(bairrosGeoDataCache);
+        } else {
+            try {
+                const res = await fetch('./data/bairros_fortaleza.json');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                bairrosGeoDataCache = await res.json();
+                renderBairros(bairrosGeoDataCache);
+            } catch (err) {
+                console.warn('[DCPET] Aviso ao carregar bairros de Fortaleza:', err);
+            }
+        }
+    }
 
     function initMap() {
         const mapContainer = document.getElementById('map');
@@ -184,12 +293,24 @@ document.addEventListener('DOMContentLoaded', () => {
             scrollWheelZoom: false
         });
 
-        // Camada de Mapa Clara (CartoDB Light) condizente com o tema do DCCALOR
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        // Camada de Mapa Clara (CartoDB Light) com a chave de API oficial (Padrão DCCALOR)
+        const cartoUrl = `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png${CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : ''}`;
+        L.tileLayer(cartoUrl, {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
             subdomains: 'abcd',
             maxZoom: 20
         }).addTo(map);
+
+        // Carregar Limite Municipal de Fortaleza de forma permanente
+        loadMunicipalityBoundary();
+
+        // Configurar listener para o checkbox de Bairros de Fortaleza
+        const toggleBairrosCheckbox = document.getElementById('toggle-bairros');
+        if (toggleBairrosCheckbox) {
+            toggleBairrosCheckbox.addEventListener('change', (e) => {
+                toggleNeighborhoodsLayer(e.target.checked);
+            });
+        }
 
         // Renderizar marcadores
         renderMapElements();
@@ -225,7 +346,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h4 style="font-weight: 800; color: var(--text-primary); margin: 0 0 4px 0; font-size: 0.85rem;">${config.name.replace('DEFESA CIVIL - ', '')}</h4>
                     <p style="font-size: 0.7rem; color: var(--text-secondary); margin: 0 0 8px 0;">${config.desc || 'Estação Meteorológica'}</p>
                     <div style="border-top: 1px solid var(--border-color); padding-top: 6px; display: flex; flex-direction: column; gap: 3px;">
-                        <span style="font-size: 0.725rem; font-weight: 700; color: ${meta.color};">Estresse IET-Pet: ${data.ietPet.toFixed(1)}°C (${meta.label})</span>
+                        <span style="font-size: 0.725rem; font-weight: 700; color: ${meta.color};">IET-Pet FOR (Operacional): ${data.ietPetFortaleza.toFixed(1)} (${meta.label})</span>
+                        <span style="font-size: 0.65rem; color: var(--text-secondary);">IET-Pet Fisiológico: <strong>${data.ietPet.toFixed(1)}</strong> | ICU: <strong>${data.icu.toFixed(1)}%</strong></span>
                         <span style="font-size: 0.7rem; color: var(--text-secondary);">Temp. Ar: <strong>${data.temperature}°C</strong> | Umid: <strong>${data.humidity}%</strong></span>
                         <span style="font-size: 0.7rem; color: var(--text-secondary);">Temp. Solo: <strong>${data.tempSurface}°C</strong> | Vento: <strong>${data.wind} m/s</strong></span>
                         ${data.isIoT ? '<span style="font-size: 0.65rem; color: var(--color-primary); font-weight: 800; text-transform: uppercase;">Estação Automática IoT</span>' : ''}
@@ -238,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const circleOptions = {
                 color: meta.color,
                 fillColor: meta.color,
-                fillOpacity: 0.15 + (Math.max(0, data.ietPet - 25) * 0.015),
+                fillOpacity: 0.15 + (Math.max(0, data.ietPetFortaleza - 20) * 0.008),
                 radius: 1800,
                 weight: 1.5,
                 dashArray: config.isIoT ? '5, 8' : undefined
@@ -291,7 +413,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const wind = parseFloat(Math.max(0.5, baseWind + ((config.windOffset || 0) - 2.8)).toFixed(1));
 
         const tempSurface = estimateSurfaceTemp(temperature, radiation, wind, config.defaultSurface || 'concrete');
-        const ietPet = calculateIETPet(temperature, humidity, tempSurface, wind);
+        const ietPet = calculateIETPet(temperature, humidity, tempSurface, wind, radiation);
+        const refTemp = getReferenceTemperature(hour);
+        const icu = calculateICU(temperature, refTemp);
+        const ietPetFortaleza = calculateIETPetFortaleza(ietPet, icu);
 
         return {
             temperature,
@@ -300,7 +425,9 @@ document.addEventListener('DOMContentLoaded', () => {
             radiation,
             tempSurface,
             ietPet,
-            riskLevel: getRiskLevel(ietPet),
+            icu,
+            ietPetFortaleza,
+            riskLevel: getRiskLevel(ietPetFortaleza),
             isIoT: !!config.isIoT
         };
     }
@@ -321,7 +448,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const radiation = plugfieldData.uvIndex !== undefined ? Math.min(1000, plugfieldData.uvIndex * 100) : simulated.radiation;
 
             const tempSurface = estimateSurfaceTemp(temperature, radiation, wind, config.defaultSurface || 'concrete');
-            const ietPet = calculateIETPet(temperature, humidity, tempSurface, wind);
+            const ietPet = calculateIETPet(temperature, humidity, tempSurface, wind, radiation);
+            const refTemp = getReferenceTemperature(hour);
+            const icu = calculateICU(temperature, refTemp);
+            const ietPetFortaleza = calculateIETPetFortaleza(ietPet, icu);
 
             return {
                 temperature,
@@ -330,13 +460,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 radiation,
                 tempSurface,
                 ietPet,
-                riskLevel: getRiskLevel(ietPet),
+                icu,
+                ietPetFortaleza,
+                riskLevel: getRiskLevel(ietPetFortaleza),
                 isIoT: true,
                 rainAccum24h: plugfieldData.rainAccum12h || 0
             };
         }
 
-        // Prioridade 2: Dados da API local FastAPI (Observatório)
+        // Prioridade 2: Dados da API local FastAPI ou Serverless (Observatório)
         if (isLiveAPI && apiWeatherData[stationId]) {
             const apiData = apiWeatherData[stationId];
             const simulated = getSimulatedWeather(stationId, hour);
@@ -351,12 +483,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 temperature = simulated.temperature;
             }
 
-            const humidity = simulated.humidity; 
-            const wind = simulated.wind;
-            const radiation = simulated.radiation;
+            // Usar dados reais de umidade, vento e radiação do Plugfield/Serverless se estiverem disponíveis
+            const humidity = apiData.umidade !== undefined && apiData.umidade !== null ? apiData.umidade : simulated.humidity;
+            const wind = apiData.vento !== undefined && apiData.vento !== null ? apiData.vento : simulated.wind;
+            const radiation = apiData.radiacao !== undefined && apiData.radiacao !== null ? apiData.radiacao : simulated.radiation;
 
             const tempSurface = estimateSurfaceTemp(temperature, radiation, wind, config.defaultSurface || 'concrete');
-            const ietPet = calculateIETPet(temperature, humidity, tempSurface, wind);
+            const ietPet = calculateIETPet(temperature, humidity, tempSurface, wind, radiation);
+            const refTemp = getReferenceTemperature(hour);
+            const icu = calculateICU(temperature, refTemp);
+            const ietPetFortaleza = calculateIETPetFortaleza(ietPet, icu);
 
             return {
                 temperature,
@@ -365,8 +501,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 radiation,
                 tempSurface,
                 ietPet,
-                riskLevel: getRiskLevel(ietPet),
-                isIoT: false,
+                icu,
+                ietPetFortaleza,
+                riskLevel: getRiskLevel(ietPetFortaleza),
+                isIoT: apiData.umidade !== undefined || apiData.vento !== undefined,
                 rainAccum24h: apiData.chuva_24h || apiData.chuva_acumulada_24h || (apiData.ultima_medicao > 45 ? apiData.ultima_medicao : 0)
             };
         }
@@ -380,7 +518,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const radiation = simulated.radiation;
 
             const tempSurface = estimateSurfaceTemp(temperature, radiation, wind, config.defaultSurface || 'concrete');
-            const ietPet = calculateIETPet(temperature, humidity, tempSurface, wind);
+            const ietPet = calculateIETPet(temperature, humidity, tempSurface, wind, radiation);
+            const refTemp = getReferenceTemperature(hour);
+            const icu = calculateICU(temperature, refTemp);
+            const ietPetFortaleza = calculateIETPetFortaleza(ietPet, icu);
 
             return {
                 temperature,
@@ -389,7 +530,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 radiation,
                 tempSurface,
                 ietPet,
-                riskLevel: getRiskLevel(ietPet),
+                icu,
+                ietPetFortaleza,
+                riskLevel: getRiskLevel(ietPetFortaleza),
                 isIoT: true
             };
         }
@@ -399,12 +542,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Calcula o Índice de Estresse Térmico Pet (IET-Pet) baseado em fisiologia canina/felina
-    function calculateIETPet(tempAir, humidity, tempSurface, wind) {
-        const humidityFactor = 0.15 * (humidity - 50);
-        const surfaceFactor = 0.3 * (tempSurface - tempAir);
-        const windCooling = 0.5 * wind;
-        const iet = tempAir + humidityFactor + surfaceFactor - windCooling;
-        return parseFloat(iet.toFixed(1));
+    function calculateIETPet(tempAir, humidity, tempSurface, wind, radiation) {
+        if (radiation === undefined) radiation = 0;
+        
+        // 1. Normalização das Variáveis (clamped entre 0 e 1)
+        const Tn = Math.max(0, Math.min(1, (tempAir - 20) / 25));
+        const URn = Math.max(0, Math.min(1, humidity / 100));
+        const Rgn = Math.max(0, Math.min(1, radiation / 1200));
+        const Tsn = Math.max(0, Math.min(1, (tempSurface - 20) / 50));
+        const Vn = Math.max(0, Math.min(1, wind / 10));
+
+        // 2. Equação Científica Proposta
+        const iet = 100 * ((0.35 * Tn) + (0.20 * URn) + (0.20 * Rgn) + (0.15 * Tsn) - (0.10 * Vn));
+        
+        return parseFloat(Math.max(0, Math.min(100, iet)).toFixed(1));
+    }
+
+    // Retorna a temperatura de referência regional (Mucuripe - st-008) para o cálculo do ICU
+    function getReferenceTemperature(hour) {
+        if (isPlugfieldConnected && plugfieldWeatherData['st-008']) {
+            const dev = plugfieldWeatherData['st-008'];
+            if (dev.temperature !== undefined) {
+                return parseFloat(dev.temperature.toFixed(1));
+            }
+        }
+        if (isLiveAPI && apiWeatherData['st-008']) {
+            const apiData = apiWeatherData['st-008'];
+            if (apiData.temperatura_c !== undefined && apiData.temperatura_c !== null) {
+                return parseFloat(apiData.temperatura_c.toFixed(1));
+            }
+        }
+        const baseTemp = 27.5 + 3.5 * Math.sin((hour - 8) * Math.PI / 12);
+        return parseFloat((baseTemp - 1.0).toFixed(1));
+    }
+
+    // Calcula a Intensidade da Ilha de Calor Urbana (ICU)
+    function calculateICU(tempAir, refTemp) {
+        const delta = tempAir - refTemp;
+        const icu = Math.max(0, Math.min(1, delta / 5.0)) * 100;
+        return parseFloat(icu.toFixed(1));
+    }
+
+    // Calcula o indicador operacional integrado IET-Pet Fortaleza
+    function calculateIETPetFortaleza(ietPet, icu) {
+        const ietFor = 0.7 * ietPet + 0.3 * icu;
+        return parseFloat(ietFor.toFixed(1));
     }
 
     // Estima a temperatura de superfície do solo
@@ -437,25 +619,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Retorna o nível de risco fisiológico baseado no IET
     function getRiskLevel(iet) {
-        if (iet < 27) return 'low';
-        if (iet < 32) return 'moderate';
-        if (iet < 37) return 'high';
-        return 'critical';
+        if (iet <= 20) return 'comfortable';
+        if (iet <= 40) return 'attention';
+        if (iet <= 60) return 'moderate';
+        if (iet <= 80) return 'high';
+        return 'extreme';
     }
 
     const riskMeta = {
-        low: { label: 'Seguro', class: 'badge-low', color: 'var(--color-low)', desc: 'Condições seguras para passeios.' },
-        moderate: { label: 'Atenção', class: 'badge-moderate', color: 'var(--color-moderate)', desc: 'Atenção térmica. Reduza o ritmo e hidrate o animal.' },
-        high: { label: 'Alerta', class: 'badge-high', color: 'var(--color-high)', desc: 'Perigo Térmico. Evite sol direto e proteja as patas.' },
-        critical: { label: 'Crítico', class: 'badge-critical', color: 'var(--color-critical)', desc: 'Alerta Vermelho! Risco à vida por hipertermia ou colapso.' }
+        comfortable: { label: 'Confortável', class: 'badge-low', color: 'var(--color-low)', desc: 'Conforto térmico. Respiração e atividade normais.' },
+        attention: { label: 'Atenção', class: 'badge-moderate', color: 'var(--color-moderate)', desc: 'Atenção preventiva. Procura ocasional por sombra.' },
+        moderate: { label: 'Moderado', class: 'badge-orange', color: 'var(--color-orange)', desc: 'Ofegação evidente. Reduza o ritmo e hidrate bastante o animal.' },
+        high: { label: 'Alto', class: 'badge-critical', color: 'var(--color-critical)', desc: 'Perigo Térmico. Risco de hipertermia e letargia. Perigo para braquicefálicos.' },
+        extreme: { label: 'Extremo', class: 'badge-extreme', color: 'var(--color-extreme)', desc: 'Emergência Térmica! Risco iminente de óbito ou insolação.' }
     };
 
-    // --- CONEXÃO COM API LOCAL FASTAPI (OBSERVATÓRIO) ---
+    // --- CONEXÃO COM API AUTOMÁTICA (SERVERLESS / LOCAL FASTAPI) ---
     async function fetchLiveWeatherData() {
         try {
-            // Tenta consultar a API FastAPI do observatório climático local (porta padrão 8000)
-            const response = await fetch('http://localhost:8000/api/sensores');
-            if (!response.ok) throw new Error('Falha no status da API local');
+            // Tenta primeiro a API Serverless local/relativa (que roda no Vercel com dados reais do Plugfield)
+            // Se falhar (ex: rodando localmente sem Vercel Dev), tenta o uvicorn local do Observatório (porta 8000)
+            let response;
+            try {
+                response = await fetch('/api/sensores');
+                if (!response.ok) throw new Error('Endpoint relativo falhou');
+            } catch (relErr) {
+                console.log('[DCPET] Endpoint relativo /api/sensores falhou ou está indisponível. Tentando FastAPI local...');
+                response = await fetch('http://localhost:8000/api/sensores');
+                if (!response.ok) throw new Error('Falha no status da API local');
+            }
             
             const sensorList = await response.json();
             
@@ -479,11 +671,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             isLiveAPI = true;
             updateConnectionLEDs();
-            console.log('[DCPET] Dados meteorológicos da API local carregados com sucesso.');
+            console.log('[DCPET] Dados meteorológicos da API carregados com sucesso.');
         } catch (err) {
             isLiveAPI = false;
             updateConnectionLEDs();
-            console.warn('[DCPET] API do Observatório não disponível localmente. Utilizando simulação estrutural.');
+            console.warn('[DCPET] APIs meteorológicas indisponíveis. Utilizando simulação estrutural.');
         }
     }
 
@@ -493,6 +685,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const sidebarType = document.getElementById('sidebar-api-type');
         
         let liveType = 'Simulador';
+        
+        // Verifica se a API retornou telemetria real do Plugfield
+        let hasRealTelemetry = false;
+        Object.keys(apiWeatherData).forEach(id => {
+            if (apiWeatherData[id] && (apiWeatherData[id].umidade !== undefined || apiWeatherData[id].vento !== undefined)) {
+                hasRealTelemetry = true;
+            }
+        });
+
         if (isPlugfieldConnected) {
             liveType = 'Plugfield API';
             if (led) {
@@ -500,10 +701,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 text.textContent = 'API ao Vivo (Plugfield)';
             }
         } else if (isLiveAPI) {
-            liveType = 'FastAPI Local';
-            if (led) {
-                led.className = 'status-led api-status-live';
-                text.textContent = 'API ao Vivo (FastAPI)';
+            if (hasRealTelemetry) {
+                liveType = 'Plugfield Auto';
+                if (led) {
+                    led.className = 'status-led api-status-live';
+                    text.textContent = 'API ao Vivo (Plugfield Auto)';
+                }
+            } else {
+                liveType = 'FastAPI Local';
+                if (led) {
+                    led.className = 'status-led api-status-live';
+                    text.textContent = 'API ao Vivo (FastAPI)';
+                }
             }
         } else {
             if (led) {
@@ -765,17 +974,18 @@ document.addEventListener('DOMContentLoaded', () => {
         
         container.innerHTML = '';
 
-        let highestRisk = 'low';
+        let highestRisk = 'comfortable';
 
         Object.keys(stations).forEach(id => {
             const data = getWeather(id, hour);
             const config = stations[id];
             const meta = riskMeta[data.riskLevel];
 
-            // Risco acumulado do sistema
-            if (data.riskLevel === 'critical') highestRisk = 'critical';
-            else if (data.riskLevel === 'high' && highestRisk !== 'critical') highestRisk = 'high';
-            else if (data.riskLevel === 'moderate' && highestRisk !== 'critical' && highestRisk !== 'high') highestRisk = 'moderate';
+            // Risco acumulado do sistema baseado no nível operacional
+            if (data.riskLevel === 'extreme') highestRisk = 'extreme';
+            else if (data.riskLevel === 'high' && highestRisk !== 'extreme') highestRisk = 'high';
+            else if (data.riskLevel === 'moderate' && highestRisk !== 'extreme' && highestRisk !== 'high') highestRisk = 'moderate';
+            else if (data.riskLevel === 'attention' && highestRisk !== 'extreme' && highestRisk !== 'high' && highestRisk !== 'moderate') highestRisk = 'attention';
 
             const card = document.createElement('div');
             card.className = `station-card-light ${id === activeStationId ? 'active' : ''}`;
@@ -786,7 +996,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="station-card-dot" style="background-color: ${meta.color};"></span>
                     <div class="station-card-info">
                         <h4>${config.name.replace('DEFESA CIVIL - ', '')}</h4>
-                        <p>${config.desc || 'Estação Meteorológica'}</p>
+                        <p>IET-Pet: <strong>${data.ietPet.toFixed(1)}</strong> | ICU: <strong>${data.icu.toFixed(1)}%</strong></p>
                     </div>
                 </div>
                 <div class="station-card-values">
@@ -794,8 +1004,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         Ar: <strong>${data.temperature}°C</strong><br/>
                         Umid: <strong>${data.humidity}%</strong>
                     </div>
-                    <div class="station-card-score" style="color: ${meta.color};">
-                        ${data.ietPet}
+                    <div class="station-card-score" style="color: ${meta.color};" title="IET-Pet Fortaleza (Operacional)">
+                        ${data.ietPetFortaleza}
                     </div>
                 </div>
             `;
@@ -819,16 +1029,29 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (sysBadge) {
             let statusText = 'ESTÁVEL';
-            if (highestRisk === 'critical') {
-                statusText = 'ALERTA MÁXIMO';
-                sysBadge.className = 'status-label text-red-600';
-                if (sidebarLed) sidebarLed.className = 'status-led led-red';
+            if (highestRisk === 'extreme') {
+                statusText = 'EMERGÊNCIA TÉRMICA';
+                sysBadge.className = 'status-label';
+                sysBadge.style.color = 'var(--color-extreme)';
+                if (sidebarLed) sidebarLed.className = 'status-led led-purple';
             } else if (highestRisk === 'high') {
-                statusText = 'ATENÇÃO CRÍTICA';
-                sysBadge.className = 'status-label text-orange-600';
+                statusText = 'AÇÕES MITIGATÓRIAS';
+                sysBadge.className = 'status-label';
+                sysBadge.style.color = 'var(--color-critical)';
+                if (sidebarLed) sidebarLed.className = 'status-led led-red';
+            } else if (highestRisk === 'moderate') {
+                statusText = 'ALERTA TUTORES';
+                sysBadge.className = 'status-label';
+                sysBadge.style.color = 'var(--color-orange)';
                 if (sidebarLed) sidebarLed.className = 'status-led led-orange';
+            } else if (highestRisk === 'attention') {
+                statusText = 'PREVENTIVO';
+                sysBadge.className = 'status-label';
+                sysBadge.style.color = 'var(--color-moderate)';
+                if (sidebarLed) sidebarLed.className = 'status-led led-yellow';
             } else {
                 sysBadge.className = 'status-label';
+                sysBadge.style.color = '#e2e8f0';
                 if (sidebarLed) sidebarLed.className = 'status-led led-green';
             }
             sysBadge.textContent = statusText;
@@ -888,18 +1111,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const tempAirData = [];
         const tempSurfaceData = [];
         const ietPetData = [];
+        const ietPetFortalezaData = [];
 
         for (let h = 0; h < 24; h++) {
             const weather = getWeather(activeStationId, h);
             tempAirData.push(weather.temperature);
             tempSurfaceData.push(weather.tempSurface);
             ietPetData.push(weather.ietPet);
+            ietPetFortalezaData.push(weather.ietPetFortaleza);
         }
 
         if (trendsChart) {
             trendsChart.data.datasets[0].data = tempAirData;
             trendsChart.data.datasets[1].data = tempSurfaceData;
             trendsChart.data.datasets[2].data = ietPetData;
+            trendsChart.data.datasets[3].data = ietPetFortalezaData;
             trendsChart.update();
         } else {
             const canvas = document.getElementById('trendsChart');
@@ -907,8 +1133,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const ctx = canvas.getContext('2d');
             
             const gradientIET = ctx.createLinearGradient(0, 0, 0, 250);
-            gradientIET.addColorStop(0, 'rgba(37, 99, 235, 0.15)');
+            gradientIET.addColorStop(0, 'rgba(37, 99, 235, 0.1)');
             gradientIET.addColorStop(1, 'rgba(37, 99, 235, 0.01)');
+
+            const gradientFortaleza = ctx.createLinearGradient(0, 0, 0, 250);
+            gradientFortaleza.addColorStop(0, 'rgba(126, 34, 206, 0.15)');
+            gradientFortaleza.addColorStop(1, 'rgba(126, 34, 206, 0.01)');
 
             trendsChart = new Chart(ctx, {
                 type: 'line',
@@ -937,14 +1167,25 @@ document.addEventListener('DOMContentLoaded', () => {
                             tension: 0.3
                         },
                         {
-                            label: 'Sensação IET-Pet (°C)',
+                            label: 'IET-Pet Fisiológico',
                             data: ietPetData,
                             borderColor: '#2563eb', // Blue 600
-                            borderWidth: 3,
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            pointBackgroundColor: '#2563eb',
+                            fill: false,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'IET-Pet Fortaleza (Operacional)',
+                            data: ietPetFortalezaData,
+                            borderColor: '#7e22ce', // Purple 700
+                            borderWidth: 3.5,
                             pointRadius: 0,
                             pointHoverRadius: 6,
-                            pointBackgroundColor: '#2563eb',
-                            backgroundColor: gradientIET,
+                            pointBackgroundColor: '#7e22ce',
+                            backgroundColor: gradientFortaleza,
                             fill: true,
                             tension: 0.3
                         }
@@ -1052,9 +1293,13 @@ document.addEventListener('DOMContentLoaded', () => {
             breedWarningText = '☀️ <strong>Sem Pelo:</strong> A pele do animal está totalmente exposta à radiação UV direta. Risco alto de queimaduras de pele severas e dermatites. Evite passeios sob o sol direto.';
         }
 
-        // 4. Calcula o IET-Pet Final com o offset da raça
-        const walkIET = calculateIETPet(weather.temperature, weather.humidity, tempSurface, weather.wind) + breedOffset;
-        const riskClass = getRiskLevel(walkIET);
+        // 4. Calcula o IET-Pet Final com o offset da raça e do Fortaleza
+        const walkIET = calculateIETPet(weather.temperature, weather.humidity, tempSurface, weather.wind, timeConfig.rad) + breedOffset;
+        const refTemp = getReferenceTemperature(timeConfig.hour);
+        const walkICU = calculateICU(weather.temperature, refTemp);
+        const walkIETFortaleza = calculateIETPetFortaleza(walkIET, walkICU);
+
+        const riskClass = getRiskLevel(walkIETFortaleza);
         const meta = riskMeta[riskClass];
 
         // Exibe Gauge
@@ -1063,26 +1308,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const simVerdictDesc = document.getElementById('sim-verdict-desc');
 
         if (simIndexVal) {
-            simIndexVal.textContent = walkIET.toFixed(1);
+            simIndexVal.textContent = walkIETFortaleza.toFixed(1);
             simIndexVal.style.color = meta.color;
         }
 
         const gaugeFill = document.getElementById('sim-gauge-fill');
         if (gaugeFill) {
             gaugeFill.style.stroke = meta.color;
-            const minTemp = 20;
-            const maxTemp = 45;
-            const percent = Math.min(100, Math.max(0, ((walkIET - minTemp) / (maxTemp - minTemp)) * 100));
+            const percent = Math.min(100, Math.max(0, walkIETFortaleza));
             const offset = 220 - (220 * percent / 100);
             gaugeFill.style.strokeDashoffset = offset;
         }
 
         if (simVerdictTitle) {
-            simVerdictTitle.textContent = `Risco ${meta.label}`;
+            simVerdictTitle.textContent = `${meta.label}`;
             simVerdictTitle.style.color = meta.color;
         }
         if (simVerdictDesc) {
-            simVerdictDesc.textContent = meta.desc;
+            simVerdictDesc.innerHTML = `${meta.desc}<br/><span style="font-size: 0.65rem; color: var(--text-muted);">[IET-Pet Fisiológico: <strong>${walkIET.toFixed(1)}</strong> | ICU: <strong>${walkICU.toFixed(1)}%</strong>]</span>`;
         }
 
         // Alerta de Chão Quente
@@ -1137,17 +1380,20 @@ document.addEventListener('DOMContentLoaded', () => {
             recsContainer.innerHTML = '';
             const recList = [];
             
-            if (walkIET >= 37) {
-                recList.push({ icon: 'x-circle', text: 'Cancele o passeio. Alto risco de morte do pet.' });
-                recList.push({ icon: 'droplet', text: 'Forneça água fresca gelada abundante imediatamente.' });
+            if (walkIETFortaleza >= 80) {
+                recList.push({ icon: 'x-circle', text: 'Cancele o passeio imediatamente. Alto risco de morte do pet por emergência térmica.' });
+                recList.push({ icon: 'droplet', text: 'Forneça água gelada abundante imediatamente e resfrie o pet.' });
                 recList.push({ icon: 'wind', text: 'Mantenha o animal em ar-condicionado ou vento forçado.' });
-            } else if (walkIET >= 32) {
-                recList.push({ icon: 'umbrella', text: 'Caminhe estritamente em sombras ou parques verdes.' });
+            } else if (walkIETFortaleza >= 60) {
+                recList.push({ icon: 'alert-triangle', text: 'Perigo Térmico. Evite sol direto, reduza o ritmo e proteja as patas.' });
                 recList.push({ icon: 'droplet', text: 'Ofereça água gelada a cada 5 minutos de passeio.' });
-                recList.push({ icon: 'sunset', text: 'Passeios permitidos apenas antes das 7h ou após as 18h.' });
-            } else if (walkIET >= 27) {
-                recList.push({ icon: 'compass', text: 'Prefira gramados naturais (ex: Parque do Cocó).' });
-                recList.push({ icon: 'droplet', text: 'Leve garrafa de água com bebedouro portátil acoplado.' });
+                recList.push({ icon: 'sunset', text: 'Prefira caminhar antes das 7h ou após as 18h.' });
+            } else if (walkIETFortaleza >= 40) {
+                recList.push({ icon: 'umbrella', text: 'Caminhe estritamente sob sombras e em gramados.' });
+                recList.push({ icon: 'droplet', text: 'Leve bebedouro portátil com água fresca e ofereça a cada 10 min.' });
+            } else if (walkIETFortaleza >= 20) {
+                recList.push({ icon: 'compass', text: 'Passeio liberado com moderação. Atenção a sinais de calor.' });
+                recList.push({ icon: 'droplet', text: 'Não se esqueça de manter a hidratação regular.' });
             } else {
                 recList.push({ icon: 'smile', text: 'Passeio seguro! Divirta-se com seu pet.' });
                 recList.push({ icon: 'droplet', text: 'Não se esqueça de manter a hidratação regular.' });
@@ -1533,7 +1779,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- NAVEGAÇÃO DE ABAS DA SIDEBAR ---
-    document.querySelectorAll('.menu-item').forEach(btn => {
+    document.querySelectorAll('.menu-item[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => {
             const tabName = btn.getAttribute('data-tab');
             document.querySelectorAll('.menu-item').forEach(b => b.classList.remove('active'));
@@ -1596,11 +1842,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // 3. Inicializa o Leaflet Map
         initMap();
 
-        // 4. Conecta com a API local FastAPI do Observatório
+        // 4. Conecta com a API local FastAPI do Observatório ou Serverless
         await fetchLiveWeatherData();
 
-        // 5. Conecta com a API Plugfield (se existirem credenciais)
-        await initPlugfield();
+        // 5. Desativado client-side: Conexão direta desnecessária com a automação no backend
+        // await initPlugfield();
 
         // 6. Atualizações Periódicas (1 min)
         setInterval(async () => {
@@ -1615,6 +1861,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 7. Eventos Auxiliares e Loop Inicial
         document.getElementById('btn-run-simulation').addEventListener('click', runWalkSimulation);
+
+        // Toggle do Manual Técnico
+        const btnToggleManual = document.getElementById('btn-toggle-manual');
+        const manualContentBox = document.getElementById('manual-content-box');
+        if (btnToggleManual && manualContentBox) {
+            btnToggleManual.addEventListener('click', () => {
+                const isHidden = manualContentBox.style.display === 'none';
+                if (isHidden) {
+                    manualContentBox.style.display = 'block';
+                    btnToggleManual.innerHTML = '<i data-lucide="eye-off"></i> Recolher Especificação';
+                } else {
+                    manualContentBox.style.display = 'none';
+                    btnToggleManual.innerHTML = '<i data-lucide="eye"></i> Expandir Especificação';
+                }
+                lucide.createIcons();
+            });
+        }
 
         // Renderizar Colônias de rua
         renderColonies();

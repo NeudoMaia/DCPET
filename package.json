@@ -1,0 +1,19 @@
+﻿{
+  "name": "dcpet-defesa-civil",
+  "version": "4.0.0",
+  "description": "DCPET - Defesa Civil de Fortaleza | Monitoramento de Estresse Térmico Animal",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "private": true
+}

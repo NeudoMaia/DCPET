@@ -71,16 +71,28 @@
 
                     <div class="menu-group">
                         <span class="group-title">Infraestrutura</span>
+                        <!-- Ocultado conforme solicitação do usuário: controle automatizado no backend -->
+                        <!--
                         <button class="menu-item" data-tab="iot">
                             <span class="menu-indicator"></span>
                             <i data-lucide="radio"></i>
                             <span class="menu-label">Estações IoT</span>
                         </button>
+                        -->
                         <button class="menu-item" data-tab="street-animals">
                             <span class="menu-indicator"></span>
                             <i data-lucide="heart"></i>
                             <span class="menu-label">Animais de Rua</span>
                         </button>
+                    </div>
+
+                    <div class="menu-group">
+                        <span class="group-title">Saúde Humana</span>
+                        <a href="https://dccalor.vercel.app/" target="_blank" rel="noopener noreferrer" class="menu-item">
+                            <span class="menu-indicator"></span>
+                            <i data-lucide="user"></i>
+                            <span class="menu-label">DCCALOR - Saúde Humana</span>
+                        </a>
                     </div>
 
                 </div>
@@ -167,16 +179,41 @@
                                 <div class="map-leaflet-container" id="map">
                                     <!-- Leaflet vai carregar aqui -->
                                 </div>
+
+                                <!-- Controle Flutuante de Camadas (Padrão DCCALOR) -->
+                                <div class="map-layers-floating-control">
+                                    <div class="layers-control-header">
+                                        <span class="layers-title">
+                                            <i data-lucide="layers"></i>
+                                            Camadas do Mapa
+                                        </span>
+                                        <span class="layers-tag">Fortaleza</span>
+                                    </div>
+                                    <label class="layers-option-label" title="Exibir a divisão com os 121 bairros oficiais de Fortaleza">
+                                        <input type="checkbox" id="toggle-bairros" class="layers-checkbox" />
+                                        <span>Bairros de Fortaleza</span>
+                                    </label>
+                                    <div class="layers-status-item" title="Limite territorial oficial do município de Fortaleza (IBGE)">
+                                        <span class="layer-indicator-boundary"></span>
+                                        <span>Limite Municipal <span class="badge-mini">Fixo</span></span>
+                                    </div>
+                                </div>
+
                                 <div class="map-legend-overlay">
-                                    <h4>Nível de Alerta de Calor (IET-Pet)</h4>
+                                    <h4>Nível de Risco Operacional (IET-Pet FOR)</h4>
                                     <div class="legend-items">
-                                        <div class="legend-item"><span class="legend-color" style="background-color: var(--color-low);"></span> Seguro (&lt; 27°C)</div>
-                                        <div class="legend-item"><span class="legend-color" style="background-color: var(--color-moderate);"></span> Atenção (27°C - 31.9°C)</div>
-                                        <div class="legend-item"><span class="legend-color" style="background-color: var(--color-high);"></span> Alerta (32°C - 36.9°C)</div>
-                                        <div class="legend-item"><span class="legend-color" style="background-color: var(--color-critical);"></span> Crítico (&ge; 37°C)</div>
+                                        <div class="legend-item"><span class="legend-color" style="background-color: var(--color-low);"></span> Confortável (0 - 20)</div>
+                                        <div class="legend-item"><span class="legend-color" style="background-color: var(--color-moderate);"></span> Atenção (21 - 40)</div>
+                                        <div class="legend-item"><span class="legend-color" style="background-color: var(--color-orange);"></span> Moderado (41 - 60)</div>
+                                        <div class="legend-item"><span class="legend-color" style="background-color: var(--color-critical);"></span> Alto (61 - 80)</div>
+                                        <div class="legend-item"><span class="legend-color" style="background-color: var(--color-extreme);"></span> Extremo (81 - 100)</div>
                                     </div>
                                     <div class="legend-footer">
                                         <span class="legend-dot-dashed"></span> Estação IoT Georreferenciada
+                                    </div>
+                                    <div class="legend-cartography">
+                                        <div class="legend-item"><span class="legend-line-boundary"></span> Limite Municipal (Fixo)</div>
+                                        <div class="legend-item" id="legend-bairros-item" style="display: none;"><span class="legend-line-bairros"></span> Bairros de Fortaleza</div>
                                     </div>
                                 </div>
                             </div>
@@ -412,6 +449,151 @@
                                         </div>
                                         <div class="edu-graphic">💔🐾</div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Manual Especificação Técnica -->
+                    <div class="workspace-full-row">
+                        <div class="card-wrapper">
+                            <div class="card-header-flex">
+                                <div>
+                                    <h3 class="card-title"><i data-lucide="terminal" class="text-blue-600"></i> Especificação e Métricas Técnicas (IET-Pet)</h3>
+                                    <p class="card-subtitle">Ditames científicos, fórmulas matemáticas e fluxos de dados do sistema</p>
+                                </div>
+                                <button class="btn-add-colony" id="btn-toggle-manual" style="font-size:0.65rem;">
+                                    <i data-lucide="eye"></i> Expandir Especificação
+                                </button>
+                            </div>
+                            <div class="manual-content-expanded" id="manual-content-box" style="display: none;">
+                                <div class="manual-grid-2col">
+                                    <div class="manual-column">
+                                        <h4>1. Fórmula Científica do IET-Pet</h4>
+                                        <p>O Índice de Estresse Térmico Pet (IET-Pet) quantifica a carga térmica fisiológica que incide sobre cães e gatos em ambientes urbanos:</p>
+                                        <div class="formula-box">
+                                            <code>IET<sub>Pet</sub> = 100 &times; [(0.35 &times; T<sub>n</sub>) + (0.20 &times; UR<sub>n</sub>) + (0.20 &times; Rg<sub>n</sub>) + (0.15 &times; Ts<sub>n</sub>) - (0.10 &times; V<sub>n</sub>)]</code>
+                                        </div>
+                                        <p class="manual-legend-text" style="font-size:0.7rem; line-height:1.4; color:var(--text-secondary);">
+                                            <strong>Variáveis Normalizadas (Escala de 0 a 1):</strong><br/>
+                                            • <strong>T<sub>n</sub> (Temperatura do Ar)</strong>: <code>T<sub>n</sub> = (T - 20) / 25</code> (Limite inferior 20°C, Extremo 45°C)<br/>
+                                            • <strong>UR<sub>n</sub> (Umidade Relativa)</strong>: <code>UR<sub>n</sub> = UR / 100</code> (Afeta a evaporação respiratória da ofegação)<br/>
+                                            • <strong>Rg<sub>n</sub> (Radiação Solar)</strong>: <code>Rg<sub>n</sub> = Rg / 1200</code> (Representa insolação direta, máx 1200 W/m²)<br/>
+                                            • <strong>Ts<sub>n</sub> (Temperatura do Solo)</strong>: <code>Ts<sub>n</sub> = (Ts - 20) / 50</code> (Contato com patas/solo, limite máx 70°C)<br/>
+                                            • <strong>V<sub>n</sub> (Velocidade do Vento)</strong>: <code>V<sub>n</sub> = V / 10</code> (Fator de dissipação convectiva, limitado a 1.0)
+                                        </p>
+                                    </div>
+                                    <div class="manual-column">
+                                        <h4>2. Indicador Operacional IET-Pet Fortaleza</h4>
+                                        <p>Indicador municipal complementar para a Defesa Civil que integra as variáveis meteorológicas com a influência direta das Ilhas de Calor Urbanas (ICU):</p>
+                                        <div class="formula-box" style="color: var(--color-extreme);">
+                                            <code>IET<sub>Pet-FOR</sub> = 0.7 &times; IET<sub>Pet</sub> + 0.3 &times; ICU</code>
+                                        </div>
+                                        <p class="manual-legend-text" style="font-size:0.7rem; line-height:1.4; color:var(--text-secondary);">
+                                            • <strong>ICU (Intensidade de Ilha de Calor)</strong>: Calculado dinamicamente em relação à estação costeira de Mucuripe (st-008), que serve de referência de brisa marinha sem efeito de ilha de calor:<br/>
+                                            <code>ICU = clamp((T<sub>estação</sub> - T<sub>Mucuripe</sub>) / 5, 0, 1) &times; 100</code> (Onde delta de 5°C representa ICU de 100%)<br/>
+                                            • <strong>Uso Operacional</strong>: Permite a emissão de alertas territorializados, priorizando bairros mais adensados e com menor índice de áreas verdes.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="manual-divider"></div>
+
+                                <div class="manual-grid-2col" style="margin-top: 1.25rem;">
+                                    <div class="manual-column">
+                                        <h4>3. Limiares de Risco e Correspondência Biológica</h4>
+                                        <table class="manual-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Faixa</th>
+                                                    <th>Nível / Cor</th>
+                                                    <th>Fisiologia Animal & Ação Operacional</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>0 – 20</td>
+                                                    <td><span class="badge badge-low">Confortável</span></td>
+                                                    <td>Atividade e respiração normais. Monitoramento regular.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>21 – 40</td>
+                                                    <td><span class="badge badge-moderate">Atenção</span></td>
+                                                    <td>Procura ocasional por sombra; aumento discreto de ofego. Comunicação preventiva.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>41 – 60</td>
+                                                    <td><span class="badge badge-orange">Moderado</span></td>
+                                                    <td>Ofegação evidente; redução de atividade; alto consumo de água. Alerta para tutores.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>61 – 80</td>
+                                                    <td><span class="badge badge-critical">Alto</span></td>
+                                                    <td>Hipertermia inicial; letargia; risco crítico para braquicefálicos (Pugs, Bulldogs). Ações mitigatórias.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>81 – 100</td>
+                                                    <td><span class="badge badge-extreme">Extremo</span></td>
+                                                    <td>Risco de insolação severa e colapso circulatório. Emergência veterinária e alerta roxo municipal.</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="manual-column">
+                                        <h4>4. Variáveis do Modelo Fisiológico do Solo</h4>
+                                        <p>Para estimar a temperatura do piso (T<sub>solo</sub>) sem sensores diretos em todas as estações, aplicamos:</p>
+                                        <div class="formula-box">
+                                            <code>Ts = T<sub>ar</sub> + ((Rg / 100) &times; C<sub>absorção</sub>) - (V &times; C<sub>resfriamento</sub>)</code>
+                                        </div>
+                                        <table class="manual-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Superfície</th>
+                                                    <th>Coef. Absorção (C<sub>abs</sub>)</th>
+                                                    <th>Coef. Resfriamento (C<sub>resf</sub>)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Asfalto Escuro</td>
+                                                    <td>2.6 (Forte ganho solar)</td>
+                                                    <td>0.20</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Concreto Claro</td>
+                                                    <td>1.9 (Calçadas densas)</td>
+                                                    <td>0.15</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Grama / Terra</td>
+                                                    <td>0.4 (Zonas verdes)</td>
+                                                    <td>0.05</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="manual-divider"></div>
+
+                                <div class="manual-grid-full" style="margin-top: 1.25rem;">
+                                    <h4>5. Integração com APIs e CORS Bypass</h4>
+                                    <p>O sistema DCPET integra os sensores do município através das seguintes interfaces de dados em tempo real:</p>
+                                    <ul class="manual-list">
+                                        <li><strong>FastAPI Observatório Local (Porta 8000)</strong>: Normaliza a telemetria urbana, fornecendo dados de chuva acumulada e temperatura local com detecção automática de instabilidade.</li>
+                                        <li><strong>Plugfield API (/device)</strong>: Conecta com a rede oficial de pluviômetros e estações meteorológicas automáticas da Defesa Civil de Fortaleza via headers criptografados (<code>x-api-key</code>) e gerenciamento de token de sessão reativo. CORS é contornado transparentemente via regras de rewrite do Vercel.</li>
+                                    </ul>
+                                </div>
+
+                                <div class="manual-grid-full" style="margin-top: 1.25rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+                                    <h4>6. Referências Científicas e Bases Fisiológicas</h4>
+                                    <p>As equações, limiares de risco e estimativas físicas do sistema DCPET fundamentam-se na seguinte literatura científica de referência:</p>
+                                    <ul class="manual-list" style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                                        <li><strong>Estresse Térmico em Caninos e Ofegação (THI)</strong>: A adaptação do <em>Temperature-Humidity Index (THI)</em> para animais de pequeno porte deriva dos estudos de <strong>Thom, E. C. (1959)</strong>, adaptados para a tolerância térmica animal pelo <em>Livestock Conservation Institute (LCI, 1970)</em> e validados recentemente por estudos como o de <strong>Azeez et al. (2022)</strong> no <em>Veterinary World</em>, que confirmam a falência do mecanismo de troca de calor pulmonar sob umidade relativa extrema.</li>
+                                        <li><strong>Carga Térmica por Radiação e Convecção (Modelo IET-Pet)</strong>: O peso de 20% para a radiação solar (Rg) e o efeito mitigador do vento (V) no índice são adaptados dos modelos do <em>Environmental Stress Index (ESI)</em> propostos por <strong>Moran, D. S. et al. (2001)</strong> em seus artigos sobre fisiologia térmica aplicados à exposição em tempo real.</li>
+                                        <li><strong>Queimaduras de Coxins (Patinhas) e Radiação de Superfície (Ts)</strong>: A modelagem de estimativa da temperatura do solo (Ts) e a tolerância térmica da epiderme queratinizada baseiam-se nos dados experimentais de <strong>Moritz, A. R., & Henriques, F. C. (1947)</strong> sobre lesões teciduais térmicas por condução, somados à regra empírica do asfalto (<em>"The 7-Second Rule"</em>) descrita em guias de segurança veterinária urbana (<strong>Berens, 1989</strong>).</li>
+                                        <li><strong>Intensidade de Ilhas de Calor Urbanas (ICU)</strong>: O cálculo comparativo do delta térmico em relação à estação Mucuripe utiliza as premissas de climatologia urbana e anomalias de ilhas de calor descritas na obra de referência de <strong>Oke, T. R. (1982)</strong> (<em>"The energetic basis of the urban heat island"</em>).</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>

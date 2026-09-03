@@ -19,7 +19,9 @@
     --color-low: #10b981;       /* Emerald 500 */
     --color-moderate: #eab308;  /* Yellow 500 */
     --color-high: #f97316;      /* Orange 500 */
+    --color-orange: #f97316;    /* Orange 500 */
     --color-critical: #dc2626;  /* Red 600 */
+    --color-extreme: #7e22ce;   /* Purple 700 */
     
     --transition-fast: 0.15s ease;
     --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -349,9 +351,24 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 0 6px var(--color-low);
 }
 
+.status-led.led-yellow {
+    background-color: var(--color-moderate);
+    box-shadow: 0 0 6px var(--color-moderate);
+}
+
+.status-led.led-orange {
+    background-color: var(--color-orange);
+    box-shadow: 0 0 6px var(--color-orange);
+}
+
 .status-led.led-red {
     background-color: var(--color-critical);
     box-shadow: 0 0 6px var(--color-critical);
+}
+
+.status-led.led-purple {
+    background-color: var(--color-extreme);
+    box-shadow: 0 0 6px var(--color-extreme);
 }
 
 .status-label {
@@ -432,6 +449,12 @@ h1, h2, h3, h4, h5, h6 {
     border-color: rgba(249, 115, 22, 0.15);
 }
 
+.badge-orange {
+    background-color: rgba(249, 115, 22, 0.08);
+    color: var(--color-orange);
+    border-color: rgba(249, 115, 22, 0.15);
+}
+
 .badge-critical {
     background-color: rgba(220, 38, 38, 0.08);
     color: var(--color-critical);
@@ -439,10 +462,23 @@ h1, h2, h3, h4, h5, h6 {
     animation: pulse-border 2s infinite;
 }
 
+.badge-extreme {
+    background-color: rgba(126, 34, 206, 0.08);
+    color: var(--color-extreme);
+    border-color: rgba(126, 34, 206, 0.15);
+    animation: pulse-border-purple 2s infinite;
+}
+
 @keyframes pulse-border {
     0% { border-color: rgba(220, 38, 38, 0.15); }
     50% { border-color: rgba(220, 38, 38, 0.6); }
     100% { border-color: rgba(220, 38, 38, 0.15); }
+}
+
+@keyframes pulse-border-purple {
+    0% { border-color: rgba(126, 34, 206, 0.15); }
+    50% { border-color: rgba(126, 34, 206, 0.6); }
+    100% { border-color: rgba(126, 34, 206, 0.15); }
 }
 
 /* --- CARDS & PANELS --- */
@@ -1609,6 +1645,159 @@ select.form-control {
     display: inline-block;
 }
 
+.legend-cartography {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.legend-line-boundary {
+    width: 16px;
+    height: 0;
+    border-bottom: 2.5px dashed #1d4ed8;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.legend-line-bairros {
+    width: 16px;
+    height: 0;
+    border-bottom: 1.5px dotted #475569;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+/* --- CONTROLE FLUTUANTE DE CAMADAS (Design System Claro) --- */
+.map-layers-floating-control {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 0.75rem 0.9rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 195px;
+    pointer-events: auto;
+    transition: all 0.2s ease;
+}
+
+.layers-control-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.layers-title {
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.layers-title i {
+    width: 13px;
+    height: 13px;
+    color: var(--color-primary);
+}
+
+.layers-tag {
+    font-size: 0.5625rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--bg-surface);
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.layers-option-label {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+    padding: 0.2rem 0;
+    transition: color 0.15s ease;
+}
+
+.layers-option-label:hover {
+    color: var(--color-primary);
+}
+
+.layers-checkbox {
+    width: 15px;
+    height: 15px;
+    border-radius: 4px;
+    border: 1.5px solid var(--border-color);
+    cursor: pointer;
+    accent-color: var(--color-primary);
+}
+
+.layers-status-item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    user-select: none;
+    padding: 0.15rem 0;
+}
+
+.layer-indicator-boundary {
+    width: 15px;
+    height: 0;
+    border-bottom: 2.5px dashed #1d4ed8;
+    display: inline-block;
+}
+
+.badge-mini {
+    font-size: 0.5625rem;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background-color: #dbeafe;
+    color: #1e40af;
+    margin-left: 0.35rem;
+    text-transform: uppercase;
+}
+
+/* Tooltip customizado dos bairros oficiais */
+.bairro-tooltip-popup {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    color: #0f172a !important;
+    font-family: inherit !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    padding: 3px 7px !important;
+}
+
+.bairro-tooltip-popup:before {
+    display: none !important;
+}
+
 /* Banner de Temperaturas na aba de Colônias */
 .top-hot-stations-banner {
     background-color: var(--bg-card);
@@ -1723,3 +1912,102 @@ select.form-control {
 .hot-station-mini-card {
     align-items: flex-start !important;
 }
+
+/* Estilos para o Manual Técnico Integrado */
+.manual-content-expanded {
+    border-top: 1px solid var(--border-color);
+    margin-top: 1rem;
+    padding-top: 1rem;
+    animation: fadeIn var(--transition-normal);
+}
+
+.manual-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .manual-grid-2col {
+        grid-template-columns: 1fr;
+    }
+}
+
+.manual-column h4, .manual-grid-full h4 {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.manual-column p, .manual-grid-full p {
+    font-size: 0.725rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    margin-bottom: 0.75rem;
+}
+
+.formula-box {
+    background-color: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.725rem;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.manual-legend-text {
+    font-size: 0.65rem !important;
+    color: var(--text-muted) !important;
+}
+
+.manual-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.7rem;
+}
+
+.manual-table th, .manual-table td {
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--border-color);
+    text-align: left;
+}
+
+.manual-table th {
+    background-color: var(--bg-light);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.manual-table td {
+    color: var(--text-secondary);
+}
+
+.manual-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 1.25rem 0;
+}
+
+.manual-list {
+    font-size: 0.725rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    padding-left: 1.2rem;
+    margin-bottom: 0.75rem;
+}
+
+.manual-list li {
+    margin-bottom: 0.35rem;
+}
+

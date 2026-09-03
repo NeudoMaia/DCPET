@@ -2,6 +2,10 @@
   "name": "dcpet-defesa-civil",
   "rewrites": [
     {
+      "source": "/api/sensores",
+      "destination": "/api/sensores.js"
+    },
+    {
       "source": "/plugfield-api/:path*",
       "destination": "https://prod-api.plugfield.com.br/:path*"
     }
