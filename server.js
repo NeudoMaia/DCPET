@@ -17,7 +17,7 @@ app.use(cors());
 app.use(express.json());
 
 // 1. Endpoint de Healthcheck para Docker e Monitoramento
-app.get('/health', (req, res) => {
+app.get(['/health', '/dcpet/health'], (req, res) => {
     res.status(200).json({
         status: 'healthy',
         service: 'dcpet-defesa-civil',
@@ -27,7 +27,7 @@ app.get('/health', (req, res) => {
 });
 
 // 2. Endpoint da API de Sensores (Meteorologia Real / Fallback)
-app.all('/api/sensores', async (req, res) => {
+app.all(['/api/sensores', '/dcpet/api/sensores'], async (req, res) => {
     if (typeof sensoresHandler === 'function') {
         try {
             await sensoresHandler(req, res);
@@ -40,7 +40,8 @@ app.all('/api/sensores', async (req, res) => {
     }
 });
 
-// 3. Servir arquivos estáticos (HTML, CSS, JS, Data GeoJSON)
+// 3. Servir arquivos estáticos (HTML, CSS, JS, Data GeoJSON) tanto na raiz quanto em /dcpet
+app.use('/dcpet', express.static(path.join(__dirname)));
 app.use(express.static(path.join(__dirname)));
 
 // 4. Fallback para rotas SPA / navegação direta
