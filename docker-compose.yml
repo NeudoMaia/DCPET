@@ -17,3 +17,12 @@
       timeout: 5s
       retries: 3
       start_period: 10s
+    networks:
+      - default
+      - rdc_network
+
+networks:
+  default:
+  rdc_network:
+    name: rdc-sistema_rdc_network
+    external: true
