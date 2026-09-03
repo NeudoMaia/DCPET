@@ -16,9 +16,9 @@ COPY . .
 # Expor a porta 3005
 EXPOSE 3005
 
-# Healthcheck
+# Healthcheck usando IPv4 explicito
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3005/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3005/health || exit 1
 
 # Iniciar servidor Express
 CMD ["node", "server.js"]
