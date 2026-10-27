@@ -643,40 +643,58 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'extreme';
     }
 
-    function getRiskMeta(riskClass, species = 'dog') {
+    function getRiskMeta(riskClass, species = 'dog', isNight = false) {
         const isCat = species === 'cat';
+        
+        // Descrições adaptadas ao ciclo circadiano (Diurno com sol vs. Noturno/Madrugada sem radiação)
         const meta = {
             comfortable: {
                 label: 'Confortável',
                 class: 'badge-low',
                 color: 'var(--color-low)',
                 desc: isCat 
-                    ? 'Conforto pleno para felinos. Respiração e autolimpeza (grooming) normais.' 
-                    : 'Conforto térmico canino. Respiração e atividade normais.'
+                    ? (isNight 
+                        ? 'Conforto pleno para felinos no período noturno/madrugada. Descanso e comportamento normais.' 
+                        : 'Conforto pleno para felinos. Respiração e autolimpeza (grooming) normais.')
+                    : (isNight 
+                        ? 'Conforto térmico canino noturno. Temperatura agradável e respiração normal.' 
+                        : 'Conforto térmico canino. Respiração e atividade normais.')
             },
             attention: {
                 label: 'Atenção',
                 class: 'badge-moderate',
                 color: 'var(--color-moderate)',
                 desc: isCat
-                    ? 'Atenção preventiva. Gato busca pisos frios ou sombras e lambe patas com frequência.'
-                    : 'Atenção preventiva. Procura ocasional por sombra; início de ofego leve.'
+                    ? (isNight 
+                        ? 'Atenção preventiva. Noite/madrugada com abafamento ou umidade elevada. Gato busca locais arejados ou azulejos frescos.' 
+                        : 'Atenção preventiva. Gato busca pisos frios ou sombras e lambe patas com frequência.')
+                    : (isNight 
+                        ? 'Atenção preventiva. Noite/madrugada com calor retido pelo solo ou alta umidade; início de ofego leve. Busque locais bem ventilados.' 
+                        : 'Atenção preventiva. Procura ocasional por sombra; início de ofego leve.')
             },
             moderate: {
                 label: 'Moderado',
                 class: 'badge-orange',
                 color: 'var(--color-orange)',
                 desc: isCat
-                    ? 'Desconforto térmico evidente. Imobilidade em decúbito, orelhas quentes e coxins úmidos. Ofereça água fresca e sombra ventilada.'
-                    : 'Ofegação evidente e contínua. Reduza o ritmo da caminhada e hidrate bastante o cão.'
+                    ? (isNight 
+                        ? 'Desconforto térmico noturno por calor acumulado na malha urbana. Mantenha boa ventilação e água fresca à disposição.' 
+                        : 'Desconforto térmico evidente. Imobilidade em decúbito, orelhas quentes e coxins úmidos. Ofereça água fresca e sombra ventilada.')
+                    : (isNight 
+                        ? 'Ofegação evidente decorrente do abafamento noturno (ilha de calor). Reduza o ritmo e hidrate o cão.' 
+                        : 'Ofegação evidente e contínua. Reduza o ritmo da caminhada e hidrate bastante o cão.')
             },
             high: {
                 label: 'Alto',
                 class: 'badge-critical',
                 color: 'var(--color-critical)',
                 desc: isCat
-                    ? 'Perigo Térmico Felino. Taquipneia silenciosa, letargia e recusa alimentar. Risco severo de desidratação renal em colônias de rua.'
-                    : 'Perigo Térmico Canino. Risco de hipertermia e letargia. Perigo crítico para cães braquicefálicos.'
+                    ? (isNight 
+                        ? 'Perigo Térmico Noturno. Ambiente abafado e estagnado. Risco de desidratação renal em colônias de rua.' 
+                        : 'Perigo Térmico Felino. Taquipneia silenciosa, letargia e recusa alimentar. Risco severo de desidratação renal em colônias de rua.')
+                    : (isNight 
+                        ? 'Perigo Térmico Noturno. Ar abafado e calor residual retido pelo pavimento. Perigo para cães braquicefálicos.' 
+                        : 'Perigo Térmico Canino. Risco de hipertermia e letargia. Perigo crítico para cães braquicefálicos.')
             },
             extreme: {
                 label: 'Extremo',
@@ -684,7 +702,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 color: 'var(--color-extreme)',
                 desc: isCat
                     ? 'EMERGÊNCIA VETERINÁRIA FELINA! Respiração de boca aberta (ofego em gatos indica hipóxia/choque iminente). Risco iminente de óbito!'
-                    : 'Emergência Térmica Canina! Risco iminente de insolação, golpe de calor (heatstroke) ou óbito.'
+                    : (isNight 
+                        ? 'Emergência Térmica Noturna! Risco de golpe de calor (heatstroke) por asfixia térmica em ambientes abafados.' 
+                        : 'Emergência Térmica Canina! Risco iminente de insolação, golpe de calor (heatstroke) ou óbito.')
             }
         };
         return meta[riskClass] || meta.comfortable;
@@ -1385,6 +1405,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const timeConfig = timeSlots[timeSlotKey];
         const stationConfig = stations[stationId];
+        const isNight = timeConfig.rad === 0;
 
         // 1. Obtém o clima da estação no horário simulado
         const weather = getWeather(stationId, timeConfig.hour);
@@ -1399,28 +1420,43 @@ document.addEventListener('DOMContentLoaded', () => {
         if (species === 'cat') {
             if (breed === 'cat_brachy') {
                 breedOffset = 4.0;
-                breedWarningText = '🚨 <strong>Gato Braquicefálico (Persa/Exótico):</strong> Vias aéreas estreitadas (estenose) impedem dissipação térmica adequada. Em ambiente abafado ou sob sol, corre risco crítico de hipóxia e choque térmico em poucos minutos!';
+                breedWarningText = isNight 
+                    ? '🚨 <strong>Gato Braquicefálico (Persa/Exótico):</strong> Vias aéreas estreitadas (estenose) dificultam a respiração em noites abafadas. Mantenha em ambiente arejado para evitar hipóxia.' 
+                    : '🚨 <strong>Gato Braquicefálico (Persa/Exótico):</strong> Vias aéreas estreitadas (estenose) impedem dissipação térmica adequada. Em ambiente abafado ou sob sol, corre risco crítico de hipóxia e choque térmico em poucos minutos!';
             } else if (breed === 'cat_long') {
                 breedOffset = 2.5;
-                breedWarningText = '⚠️ <strong>Gato de Pelagem Longa (Persa/Maine Coon):</strong> Subpelo denso atua retendo o calor corporal interno. Mantenha em cômodos frescos, azulejos e realize escovação frequente.';
+                breedWarningText = isNight
+                    ? '⚠️ <strong>Gato de Pelagem Longa (Persa/Maine Coon):</strong> Subpelo denso retém calor corporal. Proporcione descanso sobre pisos frios ou azulejos.'
+                    : '⚠️ <strong>Gato de Pelagem Longa (Persa/Maine Coon):</strong> Subpelo denso atua retendo o calor corporal interno. Mantenha em cômodos frescos, azulejos e realize escovação frequente.';
             } else if (breed === 'cat_community') {
                 breedOffset = 2.0;
-                breedWarningText = '🐾 <strong>Gato Comunitário / Rua:</strong> Alerta de desidratação renal severa! Potes de água ao sol aquecem (>40°C), fazendo o felino recusar água e descompensar os rins rapidamente.';
+                breedWarningText = isNight
+                    ? '🐾 <strong>Gato Comunitário / Rua:</strong> Excelente período para alimentação e hidratação das colônias, com temperatura de piso amena e sem sol direto.'
+                    : '🐾 <strong>Gato Comunitário / Rua:</strong> Alerta de desidratação renal severa! Potes de água ao sol aquecem (>40°C), fazendo o felino recusar água e descompensar os rins rapidamente.';
             } else if (breed === 'cat_senior') {
                 breedOffset = 3.0;
-                breedWarningText = '🩺 <strong>Gato Idoso / DRC:</strong> Hipersensibilidade a estresse térmico. Pequenas perdas hídricas provocam uremia e desidratação subclínica grave.';
+                breedWarningText = '🩺 <strong>Gato Idoso / DRC:</strong> Hipersensibilidade a estresse térmico. Mantenha água fresca e ambiente fresco.';
             }
         } else {
             // Caninos
             if (breed === 'dog_brachy' || breed === 'brachy') {
                 breedOffset = 3.5;
-                breedWarningText = '🚨 <strong>Cão Braquicefálico:</strong> Dificuldade muito alta de troca de calor pelo ofego. Sob a umidade de Fortaleza, corre sério risco de colapso respiratório ou síncope em poucos minutos!';
+                breedWarningText = isNight
+                    ? '🚨 <strong>Cão Braquicefálico:</strong> Dificuldade de troca de calor pelo ofego mesmo à noite se o ar estiver úmido e abafado. Evite esforços prolongados.'
+                    : '🚨 <strong>Cão Braquicefálico:</strong> Dificuldade muito alta de troca de calor pelo ofego. Sob a umidade de Fortaleza, corre sério risco de colapso respiratório ou síncope em poucos minutos!';
             } else if (breed === 'dog_long' || breed === 'double') {
                 breedOffset = 2.0;
-                breedWarningText = '⚠️ <strong>Cão de Pelagem Longa/Dupla:</strong> O pelo atua como isolador térmico que retém o calor corporal. Mantenha hidratação frequente e evite caminhadas sob o sol.';
+                breedWarningText = isNight
+                    ? '⚠️ <strong>Cão de Pelagem Longa/Dupla:</strong> O pelo retém calor corporal. Caminhe em ritmo tranquilo e hidrate o animal.'
+                    : '⚠️ <strong>Cão de Pelagem Longa/Dupla:</strong> O pelo atua como isolador térmico que retém o calor corporal. Mantenha hidratação frequente e evite caminhadas sob o sol.';
             } else if (breed === 'dog_hairless' || breed === 'hairless') {
-                breedOffset = 1.0;
-                breedWarningText = '☀️ <strong>Cão Sem Pelo:</strong> A pele está exposta diretamente à radiação UV solar. Risco alto de queimaduras solares e dermatites térmicas.';
+                if (isNight) {
+                    breedOffset = 0.0;
+                    breedWarningText = '🌙 <strong>Cão Sem Pelo (Período Noturno/Madrugada):</strong> Ausência total de radiação UV solar. Horário ideal e seguro contra queimaduras solares para animais sem pelagem.';
+                } else {
+                    breedOffset = 1.0;
+                    breedWarningText = '☀️ <strong>Cão Sem Pelo (Sob Radiação Solar):</strong> A pele está exposta diretamente à radiação UV solar. Risco alto de queimaduras solares e dermatites térmicas.';
+                }
             }
         }
 
@@ -1431,7 +1467,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const walkIETFortaleza = calculateIETPetFortaleza(walkIET, walkICU);
 
         const riskClass = getRiskLevel(walkIETFortaleza);
-        const meta = getRiskMeta(riskClass, species);
+        const meta = getRiskMeta(riskClass, species, isNight);
 
         // Exibe Gauge
         const simIndexVal = document.getElementById('sim-index-val');
@@ -1519,11 +1555,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     recList.push({ icon: 'wind', text: 'Ligue ar-condicionado ou ventilador indireto imediatamente para resfriamento passivo.' });
                     recList.push({ icon: 'droplet', text: 'NUNCA force água na boca do gato em crise respiratória (risco de broncoaspiração fatal).' });
                 } else if (walkIETFortaleza >= 60) {
-                    recList.push({ icon: 'alert-triangle', text: 'Perigo Térmico Felino: Mantenha o gato em piso frio de cerâmica ou azulejo.' });
-                    recList.push({ icon: 'droplet', text: 'Disponibilize múltiplos potes de água fresca com pedras de gelo em sombra profunda.' });
-                    recList.push({ icon: 'shield-alert', text: 'Para colônias de rua: troque a água dos bebedouros para evitar água morna que o gato rejeita.' });
+                    recList.push({ icon: 'alert-triangle', text: isNight ? 'Perigo Térmico Noturno: Mantenha o gato em cômodo fresco e piso frio de cerâmica/azulejo.' : 'Perigo Térmico Felino: Mantenha o gato em piso frio de cerâmica ou azulejo.' });
+                    recList.push({ icon: 'droplet', text: isNight ? 'Disponibilize múltiplos potes de água fresca em locais arejados.' : 'Disponibilize múltiplos potes de água fresca com pedras de gelo em sombra profunda.' });
+                    recList.push({ icon: 'shield-alert', text: isNight ? 'Para colônias de rua: aproveite o período noturno para higienizar e repor a água fresca dos bebedouros.' : 'Para colônias de rua: troque a água dos bebedouros para evitar água morna que o gato rejeita.' });
                 } else if (walkIETFortaleza >= 40) {
-                    recList.push({ icon: 'umbrella', text: 'Mantenha portas internas abertas e persianas fechadas para evitar aquecimento solar.' });
+                    recList.push({ icon: isNight ? 'wind' : 'umbrella', text: isNight ? 'Mantenha cômodos arejados e janelas teladas abertas para circulação de ar fresco da noite.' : 'Mantenha portas internas abertas e persianas fechadas para evitar aquecimento solar.' });
                     recList.push({ icon: 'droplet', text: 'Estimule a ingestão com sachê/ração úmida misturada com um pouco de água fresca.' });
                 } else {
                     recList.push({ icon: 'smile', text: 'Clima seguro e confortável para felinos. Comportamento e descanso normais.' });
@@ -1532,18 +1568,18 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 // Recomendações Clínicas para Caninos
                 if (walkIETFortaleza >= 80) {
-                    recList.push({ icon: 'x-circle', text: 'Cancele o passeio imediatamente. Alto risco de morte do pet por emergência térmica.' });
-                    recList.push({ icon: 'droplet', text: 'Forneça água gelada abundante imediatamente e resfrie o peito e patas com toalhas úmidas.' });
-                    recList.push({ icon: 'wind', text: 'Mantenha o cão em ar-condicionado ou vento forçado.' });
+                    recList.push({ icon: 'x-circle', text: isNight ? 'Cancele a caminhada noturna. Risco grave de choque térmico por abafamento extremo na malha urbana.' : 'Cancele o passeio imediatamente. Alto risco de morte do pet por emergência térmica.' });
+                    recList.push({ icon: 'droplet', text: 'Forneça água fresca abundante imediatamente e resfrie o peito e patas com toalhas úmidas.' });
+                    recList.push({ icon: 'wind', text: 'Mantenha o cão em ar-condicionado ou ventilação forçada.' });
                 } else if (walkIETFortaleza >= 60) {
-                    recList.push({ icon: 'alert-triangle', text: 'Perigo Térmico. Evite sol direto, reduza o ritmo e proteja as patas.' });
-                    recList.push({ icon: 'droplet', text: 'Ofereça água gelada a cada 5 minutos de passeio.' });
-                    recList.push({ icon: 'sunset', text: 'Prefira caminhar antes das 7h ou após as 18h.' });
+                    recList.push({ icon: 'alert-triangle', text: isNight ? 'Perigo Térmico Noturno. Noite quente e abafada: reduza o ritmo da caminhada e proteja o animal.' : 'Perigo Térmico. Evite sol direto, reduza o ritmo e proteja as patas.' });
+                    recList.push({ icon: 'droplet', text: 'Ofereça água fresca a cada 5 minutos de caminhada.' });
+                    recList.push({ icon: isNight ? 'wind' : 'sunset', text: isNight ? 'Caminhe apenas em áreas abertas e com boa circulação de vento.' : 'Prefira caminhar antes das 7h ou após as 18h.' });
                 } else if (walkIETFortaleza >= 40) {
-                    recList.push({ icon: 'umbrella', text: 'Caminhe estritamente sob sombras e em gramados.' });
+                    recList.push({ icon: isNight ? 'wind' : 'umbrella', text: isNight ? 'Caminhe em áreas abertas e bem ventiladas; período noturno livre de carga solar direta.' : 'Caminhe estritamente sob sombras e em gramados.' });
                     recList.push({ icon: 'droplet', text: 'Leve bebedouro portátil com água fresca e ofereça a cada 10 min.' });
                 } else if (walkIETFortaleza >= 20) {
-                    recList.push({ icon: 'compass', text: 'Passeio liberado com moderação. Atenção a sinais de calor.' });
+                    recList.push({ icon: 'compass', text: isNight ? 'Passeio noturno liberado com moderação. Clima sem insolação.' : 'Passeio liberado com moderação. Atenção a sinais de calor.' });
                     recList.push({ icon: 'droplet', text: 'Não se esqueça de manter a hidratação regular.' });
                 } else {
                     recList.push({ icon: 'smile', text: 'Passeio seguro! Divirta-se com seu pet.' });
