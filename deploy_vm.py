@@ -1,4 +1,4 @@
-﻿import paramiko
+import paramiko
 import time
 import sys
 
@@ -44,14 +44,17 @@ try:
     print("\n[*] 3. Construindo e subindo container dcpet-app...")
     cmd_deploy = f"cd {REMOTE_PATH} && bash deploy.sh"
     stdin, stdout, stderr = ssh.exec_command(cmd_deploy)
-    print(stdout.read().decode())
-    print(stderr.read().decode())
+    out_deploy = stdout.read().decode('utf-8', errors='replace')
+    err_deploy = stderr.read().decode('utf-8', errors='replace')
+    sys.stdout.buffer.write(out_deploy.encode('utf-8', errors='replace'))
+    sys.stdout.buffer.write(err_deploy.encode('utf-8', errors='replace'))
+    print()
 
     # 3. Validar se o container está rodando e respondendo na porta 3005
     print("\n[*] 4. Testando healthcheck do container dcpet-app...")
     stdin, stdout, stderr = ssh.exec_command("docker exec dcpet-app wget -qO- http://localhost:3005/health")
-    health_out = stdout.read().decode()
-    print("    Healthcheck:", health_out)
+    health_out = stdout.read().decode('utf-8', errors='replace')
+    print("    Healthcheck:", health_out.strip())
 
     # 4. Atualizar Nginx no rdc_frontend
     print("\n[*] 5. Configurando Nginx no rdc_frontend para a rota /dcpet/...")
