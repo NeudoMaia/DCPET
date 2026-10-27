@@ -1,5 +1,4 @@
 {
-  "name": "dcpet-defesa-civil",
   "rewrites": [
     {
       "source": "/api/sensores",

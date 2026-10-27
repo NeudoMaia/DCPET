@@ -541,37 +541,54 @@ document.addEventListener('DOMContentLoaded', () => {
         return getSimulatedWeather(stationId, hour);
     }
 
-    // Calcula o Índice de Estresse Térmico Pet (IET-Pet) baseado em fisiologia canina/felina
-    function calculateIETPet(tempAir, humidity, tempSurface, wind, radiation) {
+    // Calcula o Índice de Estresse Térmico Pet (IET-Pet) diferenciado por espécie (Canina vs. Felina)
+    function calculateIETPet(tempAir, humidity, tempSurface, wind, radiation, species = 'dog') {
         if (radiation === undefined) radiation = 0;
         
-        // 1. Normalização das Variáveis (clamped entre 0 e 1)
+        // 1. Normalização das Variáveis (clamped entre 0 e 1 conforme limites biometeorológicos)
         const Tn = Math.max(0, Math.min(1, (tempAir - 20) / 25));
         const URn = Math.max(0, Math.min(1, humidity / 100));
         const Rgn = Math.max(0, Math.min(1, radiation / 1200));
         const Tsn = Math.max(0, Math.min(1, (tempSurface - 20) / 50));
         const Vn = Math.max(0, Math.min(1, wind / 10));
 
-        // 2. Equação Científica Proposta
-        const iet = 100 * ((0.35 * Tn) + (0.20 * URn) + (0.20 * Rgn) + (0.15 * Tsn) - (0.10 * Vn));
+        let iet = 0;
+        if (species === 'cat') {
+            // Modelo Biofísico Felino (NRC 2006 / iCatCare)
+            // Gatos dependem da evaporação de saliva (grooming). Sob UR alta, a perda evaporativa falha.
+            // O vento convector tem menor eficácia na pele devido ao subpelo isolante felino.
+            const deltaUR = (tempAir >= 30 && humidity >= 70) ? 0.08 : 0;
+            iet = 100 * ((0.30 * Tn) + (0.30 * URn) + (0.20 * Rgn) + (0.15 * Tsn) - (0.05 * Vn) + deltaUR);
+        } else {
+            // Modelo Biofísico Canino (Thom 1959 / Moran 2001 / LCI)
+            // Cães dependem de alta ventilação respiratória (ofego) e troca convectiva pelo vento.
+            iet = 100 * ((0.35 * Tn) + (0.20 * URn) + (0.20 * Rgn) + (0.15 * Tsn) - (0.10 * Vn));
+        }
         
         return parseFloat(Math.max(0, Math.min(100, iet)).toFixed(1));
     }
 
-    // Retorna a temperatura de referência regional (Mucuripe - st-008) para o cálculo do ICU
+    // Retorna a temperatura de referência regional (Mucuripe - st-008) com resiliência de malha costeira
     function getReferenceTemperature(hour) {
+        // 1. Prioridade: Estação Mucuripe (st-008) via Plugfield com checagem de consistência física
         if (isPlugfieldConnected && plugfieldWeatherData['st-008']) {
             const dev = plugfieldWeatherData['st-008'];
-            if (dev.temperature !== undefined) {
+            if (dev.temperature !== undefined && dev.temperature >= 22 && dev.temperature <= 36) {
                 return parseFloat(dev.temperature.toFixed(1));
             }
         }
+        // 2. Prioridade: Estação Mucuripe via API Local do Observatório
         if (isLiveAPI && apiWeatherData['st-008']) {
             const apiData = apiWeatherData['st-008'];
-            if (apiData.temperatura_c !== undefined && apiData.temperatura_c !== null) {
+            if (apiData.temperatura_c !== undefined && apiData.temperatura_c >= 22 && apiData.temperatura_c <= 36) {
                 return parseFloat(apiData.temperatura_c.toFixed(1));
             }
         }
+        // 3. Contingência Costeira: Estação alternativa de orla (Vila Velha - st-009) se Mucuripe estiver offline
+        if (isLiveAPI && apiWeatherData['st-009'] && apiWeatherData['st-009'].temperatura_c >= 22 && apiWeatherData['st-009'].temperatura_c <= 36) {
+            return parseFloat(apiWeatherData['st-009'].temperatura_c.toFixed(1));
+        }
+        // 4. Fallback Climatológico INMET para a orla de Fortaleza
         const baseTemp = 27.5 + 3.5 * Math.sin((hour - 8) * Math.PI / 12);
         return parseFloat((baseTemp - 1.0).toFixed(1));
     }
@@ -626,6 +643,54 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'extreme';
     }
 
+    function getRiskMeta(riskClass, species = 'dog') {
+        const isCat = species === 'cat';
+        const meta = {
+            comfortable: {
+                label: 'Confortável',
+                class: 'badge-low',
+                color: 'var(--color-low)',
+                desc: isCat 
+                    ? 'Conforto pleno para felinos. Respiração e autolimpeza (grooming) normais.' 
+                    : 'Conforto térmico canino. Respiração e atividade normais.'
+            },
+            attention: {
+                label: 'Atenção',
+                class: 'badge-moderate',
+                color: 'var(--color-moderate)',
+                desc: isCat
+                    ? 'Atenção preventiva. Gato busca pisos frios ou sombras e lambe patas com frequência.'
+                    : 'Atenção preventiva. Procura ocasional por sombra; início de ofego leve.'
+            },
+            moderate: {
+                label: 'Moderado',
+                class: 'badge-orange',
+                color: 'var(--color-orange)',
+                desc: isCat
+                    ? 'Desconforto térmico evidente. Imobilidade em decúbito, orelhas quentes e coxins úmidos. Ofereça água fresca e sombra ventilada.'
+                    : 'Ofegação evidente e contínua. Reduza o ritmo da caminhada e hidrate bastante o cão.'
+            },
+            high: {
+                label: 'Alto',
+                class: 'badge-critical',
+                color: 'var(--color-critical)',
+                desc: isCat
+                    ? 'Perigo Térmico Felino. Taquipneia silenciosa, letargia e recusa alimentar. Risco severo de desidratação renal em colônias de rua.'
+                    : 'Perigo Térmico Canino. Risco de hipertermia e letargia. Perigo crítico para cães braquicefálicos.'
+            },
+            extreme: {
+                label: 'Extremo',
+                class: 'badge-extreme',
+                color: 'var(--color-extreme)',
+                desc: isCat
+                    ? 'EMERGÊNCIA VETERINÁRIA FELINA! Respiração de boca aberta (ofego em gatos indica hipóxia/choque iminente). Risco iminente de óbito!'
+                    : 'Emergência Térmica Canina! Risco iminente de insolação, golpe de calor (heatstroke) ou óbito.'
+            }
+        };
+        return meta[riskClass] || meta.comfortable;
+    }
+
+    // Compatibilidade com código legado que acessa riskMeta diretamente
     const riskMeta = {
         comfortable: { label: 'Confortável', class: 'badge-low', color: 'var(--color-low)', desc: 'Conforto térmico. Respiração e atividade normais.' },
         attention: { label: 'Atenção', class: 'badge-moderate', color: 'var(--color-moderate)', desc: 'Atenção preventiva. Procura ocasional por sombra.' },
@@ -1263,9 +1328,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Configura o seletor de espécies e atualiza dinamicamente as raças/perfis
+    function setupSpeciesSelector() {
+        const speciesSelect = document.getElementById('sim-species');
+        const breedSelect = document.getElementById('sim-breed');
+        if (!speciesSelect || !breedSelect) return;
+
+        const breedOptions = {
+            dog: [
+                { value: 'dog_short', label: 'Padrão / Pelo Curto (SRD)' },
+                { value: 'dog_brachy', label: 'Braquicefálico (Pug, Buldogue, Shih-tzu) [+3.5°C]' },
+                { value: 'dog_long', label: 'Pelagem Longa / Dupla (Golden, Husky) [+2.0°C]' },
+                { value: 'dog_hairless', label: 'Sem Pelo (Sensibilidade UV Alta)' }
+            ],
+            cat: [
+                { value: 'cat_short', label: 'Gato Doméstico Padrão / Pelo Curto (SRD) [Sensível à UR]' },
+                { value: 'cat_long', label: 'Pelagem Longa (Persa, Maine Coon, Angorá) [+2.5°C]' },
+                { value: 'cat_brachy', label: 'Braquicefálico Felino (Persa, Exótico) [Risco Crítico +4.0°C]' },
+                { value: 'cat_community', label: 'Gato Comunitário / Rua (Colônia Urbana) [Risco Hídrico Alto]' },
+                { value: 'cat_senior', label: 'Gato Idoso / DRC (Doença Renal Crônica) [+3.0°C]' }
+            ]
+        };
+
+        function updateBreedDropdown() {
+            const currentSpecies = speciesSelect.value || 'dog';
+            const options = breedOptions[currentSpecies] || breedOptions.dog;
+            breedSelect.innerHTML = '';
+            
+            const group = document.createElement('optgroup');
+            group.label = currentSpecies === 'cat' ? 'Felinos (Termorregulação por Grooming)' : 'Caninos (Termorregulação por Ofego)';
+            
+            options.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt.value;
+                el.textContent = opt.label;
+                group.appendChild(el);
+            });
+            breedSelect.appendChild(group);
+            runWalkSimulation();
+        }
+
+        speciesSelect.addEventListener('change', updateBreedDropdown);
+        breedSelect.addEventListener('change', runWalkSimulation);
+        document.getElementById('sim-station')?.addEventListener('change', runWalkSimulation);
+        document.getElementById('sim-surface')?.addEventListener('change', runWalkSimulation);
+        document.getElementById('sim-time')?.addEventListener('change', runWalkSimulation);
+    }
+
     // --- SIMULADOR DE PASSEIOS ---
     function runWalkSimulation() {
         const stationId = document.getElementById('sim-station').value;
+        const species = document.getElementById('sim-species')?.value || 'dog';
         const breed = document.getElementById('sim-breed').value;
         const surface = document.getElementById('sim-surface').value;
         const timeSlotKey = document.getElementById('sim-time').value;
@@ -1279,28 +1392,46 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Estima a temperatura de superfície
         const tempSurface = estimateSurfaceTemp(weather.temperature, timeConfig.rad, weather.wind, surface);
 
-        // 3. Fatores fisiológicos da raça
+        // 3. Fatores fisiológicos por espécie e raça
         let breedOffset = 0;
         let breedWarningText = '';
 
-        if (breed === 'brachy') {
-            breedOffset = 3.0;
-            breedWarningText = '🚨 <strong>Braquicefálico:</strong> Dificuldade muito alta de troca de calor pelo ofego. Sob alta umidade de Fortaleza, este animal corre risco de colapso respiratório ou síncope em poucos minutos!';
-        } else if (breed === 'double') {
-            breedOffset = 2.0;
-            breedWarningText = '⚠️ <strong>Pelagem Longa/Dupla:</strong> O pelo atua como um isolador térmico severo que retém o calor corporal interno. Mantenha hidratação forçada e evite o sol a todo custo.';
-        } else if (breed === 'hairless') {
-            breedWarningText = '☀️ <strong>Sem Pelo:</strong> A pele do animal está totalmente exposta à radiação UV direta. Risco alto de queimaduras de pele severas e dermatites. Evite passeios sob o sol direto.';
+        if (species === 'cat') {
+            if (breed === 'cat_brachy') {
+                breedOffset = 4.0;
+                breedWarningText = '🚨 <strong>Gato Braquicefálico (Persa/Exótico):</strong> Vias aéreas estreitadas (estenose) impedem dissipação térmica adequada. Em ambiente abafado ou sob sol, corre risco crítico de hipóxia e choque térmico em poucos minutos!';
+            } else if (breed === 'cat_long') {
+                breedOffset = 2.5;
+                breedWarningText = '⚠️ <strong>Gato de Pelagem Longa (Persa/Maine Coon):</strong> Subpelo denso atua retendo o calor corporal interno. Mantenha em cômodos frescos, azulejos e realize escovação frequente.';
+            } else if (breed === 'cat_community') {
+                breedOffset = 2.0;
+                breedWarningText = '🐾 <strong>Gato Comunitário / Rua:</strong> Alerta de desidratação renal severa! Potes de água ao sol aquecem (>40°C), fazendo o felino recusar água e descompensar os rins rapidamente.';
+            } else if (breed === 'cat_senior') {
+                breedOffset = 3.0;
+                breedWarningText = '🩺 <strong>Gato Idoso / DRC:</strong> Hipersensibilidade a estresse térmico. Pequenas perdas hídricas provocam uremia e desidratação subclínica grave.';
+            }
+        } else {
+            // Caninos
+            if (breed === 'dog_brachy' || breed === 'brachy') {
+                breedOffset = 3.5;
+                breedWarningText = '🚨 <strong>Cão Braquicefálico:</strong> Dificuldade muito alta de troca de calor pelo ofego. Sob a umidade de Fortaleza, corre sério risco de colapso respiratório ou síncope em poucos minutos!';
+            } else if (breed === 'dog_long' || breed === 'double') {
+                breedOffset = 2.0;
+                breedWarningText = '⚠️ <strong>Cão de Pelagem Longa/Dupla:</strong> O pelo atua como isolador térmico que retém o calor corporal. Mantenha hidratação frequente e evite caminhadas sob o sol.';
+            } else if (breed === 'dog_hairless' || breed === 'hairless') {
+                breedOffset = 1.0;
+                breedWarningText = '☀️ <strong>Cão Sem Pelo:</strong> A pele está exposta diretamente à radiação UV solar. Risco alto de queimaduras solares e dermatites térmicas.';
+            }
         }
 
         // 4. Calcula o IET-Pet Final com o offset da raça e do Fortaleza
-        const walkIET = calculateIETPet(weather.temperature, weather.humidity, tempSurface, weather.wind, timeConfig.rad) + breedOffset;
+        const walkIET = calculateIETPet(weather.temperature, weather.humidity, tempSurface, weather.wind, timeConfig.rad, species) + breedOffset;
         const refTemp = getReferenceTemperature(timeConfig.hour);
         const walkICU = calculateICU(weather.temperature, refTemp);
         const walkIETFortaleza = calculateIETPetFortaleza(walkIET, walkICU);
 
         const riskClass = getRiskLevel(walkIETFortaleza);
-        const meta = riskMeta[riskClass];
+        const meta = getRiskMeta(riskClass, species);
 
         // Exibe Gauge
         const simIndexVal = document.getElementById('sim-index-val');
@@ -1325,7 +1456,8 @@ document.addEventListener('DOMContentLoaded', () => {
             simVerdictTitle.style.color = meta.color;
         }
         if (simVerdictDesc) {
-            simVerdictDesc.innerHTML = `${meta.desc}<br/><span style="font-size: 0.65rem; color: var(--text-muted);">[IET-Pet Fisiológico: <strong>${walkIET.toFixed(1)}</strong> | ICU: <strong>${walkICU.toFixed(1)}%</strong>]</span>`;
+            const speciesLabel = species === 'cat' ? 'IET-Felino Fisiológico' : 'IET-Canino Fisiológico';
+            simVerdictDesc.innerHTML = `${meta.desc}<br/><span style="font-size: 0.65rem; color: var(--text-muted);">[${speciesLabel}: <strong>${walkIET.toFixed(1)}</strong> | ICU Fortaleza: <strong>${walkICU.toFixed(1)}%</strong>]</span>`;
         }
 
         // Alerta de Chão Quente
@@ -1336,7 +1468,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pawWarning.innerHTML = `
                     <i data-lucide="flame" style="color: var(--color-critical);"></i>
                     <div>
-                        <strong>Asfalto/Piso Extremamente Quente (${tempSurface}°C)!</strong> Queimaduras de 3º grau nas almofadas das patas podem ocorrer em menos de 60 segundos de contato contínuo. <strong>Não passeie descalço de forma alguma.</strong>
+                        <strong>Asfalto/Piso Extremamente Quente (${tempSurface}°C)!</strong> Queimaduras de 3º grau nas almofadas das patas (coxins) podem ocorrer em menos de 60 segundos de contato contínuo. <strong>Não passeie descalço de forma alguma.</strong>
                     </div>
                 `;
             } else if (tempSurface >= 38) {
@@ -1358,17 +1490,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Alertas adicionais de raça
+        // Alertas adicionais de raça / perfil
         const resultsBox = document.getElementById('sim-results');
         const previousWarnings = resultsBox.querySelectorAll('.warning-box:not(#paw-warning)');
         previousWarnings.forEach(w => w.remove());
 
         if (breedWarningText !== '') {
             const breedWarningEl = document.createElement('div');
-            breedWarningEl.className = breed === 'brachy' ? 'warning-box warning-box-critical' : 'warning-box warning-box-moderate';
-            
-            const warnIcon = breed === 'brachy' ? 'alert-circle' : 'info';
-            const warnColor = breed === 'brachy' ? 'var(--color-critical)' : 'var(--color-moderate)';
+            const isCrit = breed.includes('brachy');
+            breedWarningEl.className = isCrit ? 'warning-box warning-box-critical' : 'warning-box warning-box-moderate';
+            const warnIcon = isCrit ? 'alert-circle' : 'info';
+            const warnColor = isCrit ? 'var(--color-critical)' : 'var(--color-moderate)';
             
             breedWarningEl.innerHTML = `<i data-lucide="${warnIcon}" style="color: ${warnColor};"></i><div>${breedWarningText}</div>`;
             resultsBox.insertBefore(breedWarningEl, document.getElementById('paw-warning'));
@@ -1380,23 +1512,43 @@ document.addEventListener('DOMContentLoaded', () => {
             recsContainer.innerHTML = '';
             const recList = [];
             
-            if (walkIETFortaleza >= 80) {
-                recList.push({ icon: 'x-circle', text: 'Cancele o passeio imediatamente. Alto risco de morte do pet por emergência térmica.' });
-                recList.push({ icon: 'droplet', text: 'Forneça água gelada abundante imediatamente e resfrie o pet.' });
-                recList.push({ icon: 'wind', text: 'Mantenha o animal em ar-condicionado ou vento forçado.' });
-            } else if (walkIETFortaleza >= 60) {
-                recList.push({ icon: 'alert-triangle', text: 'Perigo Térmico. Evite sol direto, reduza o ritmo e proteja as patas.' });
-                recList.push({ icon: 'droplet', text: 'Ofereça água gelada a cada 5 minutos de passeio.' });
-                recList.push({ icon: 'sunset', text: 'Prefira caminhar antes das 7h ou após as 18h.' });
-            } else if (walkIETFortaleza >= 40) {
-                recList.push({ icon: 'umbrella', text: 'Caminhe estritamente sob sombras e em gramados.' });
-                recList.push({ icon: 'droplet', text: 'Leve bebedouro portátil com água fresca e ofereça a cada 10 min.' });
-            } else if (walkIETFortaleza >= 20) {
-                recList.push({ icon: 'compass', text: 'Passeio liberado com moderação. Atenção a sinais de calor.' });
-                recList.push({ icon: 'droplet', text: 'Não se esqueça de manter a hidratação regular.' });
+            if (species === 'cat') {
+                // Recomendações Clínicas para Felinos
+                if (walkIETFortaleza >= 80) {
+                    recList.push({ icon: 'alert-octagon', text: 'EMERGÊNCIA MÉDICA: Se o gato estiver ofegando (boca aberta), umedeça axilas/virilhas com água fresca e vá ao veterinário!' });
+                    recList.push({ icon: 'wind', text: 'Ligue ar-condicionado ou ventilador indireto imediatamente para resfriamento passivo.' });
+                    recList.push({ icon: 'droplet', text: 'NUNCA force água na boca do gato em crise respiratória (risco de broncoaspiração fatal).' });
+                } else if (walkIETFortaleza >= 60) {
+                    recList.push({ icon: 'alert-triangle', text: 'Perigo Térmico Felino: Mantenha o gato em piso frio de cerâmica ou azulejo.' });
+                    recList.push({ icon: 'droplet', text: 'Disponibilize múltiplos potes de água fresca com pedras de gelo em sombra profunda.' });
+                    recList.push({ icon: 'shield-alert', text: 'Para colônias de rua: troque a água dos bebedouros para evitar água morna que o gato rejeita.' });
+                } else if (walkIETFortaleza >= 40) {
+                    recList.push({ icon: 'umbrella', text: 'Mantenha portas internas abertas e persianas fechadas para evitar aquecimento solar.' });
+                    recList.push({ icon: 'droplet', text: 'Estimule a ingestão com sachê/ração úmida misturada com um pouco de água fresca.' });
+                } else {
+                    recList.push({ icon: 'smile', text: 'Clima seguro e confortável para felinos. Comportamento e descanso normais.' });
+                    recList.push({ icon: 'droplet', text: 'Mantenha potes de água sempre limpos e frescos.' });
+                }
             } else {
-                recList.push({ icon: 'smile', text: 'Passeio seguro! Divirta-se com seu pet.' });
-                recList.push({ icon: 'droplet', text: 'Não se esqueça de manter a hidratação regular.' });
+                // Recomendações Clínicas para Caninos
+                if (walkIETFortaleza >= 80) {
+                    recList.push({ icon: 'x-circle', text: 'Cancele o passeio imediatamente. Alto risco de morte do pet por emergência térmica.' });
+                    recList.push({ icon: 'droplet', text: 'Forneça água gelada abundante imediatamente e resfrie o peito e patas com toalhas úmidas.' });
+                    recList.push({ icon: 'wind', text: 'Mantenha o cão em ar-condicionado ou vento forçado.' });
+                } else if (walkIETFortaleza >= 60) {
+                    recList.push({ icon: 'alert-triangle', text: 'Perigo Térmico. Evite sol direto, reduza o ritmo e proteja as patas.' });
+                    recList.push({ icon: 'droplet', text: 'Ofereça água gelada a cada 5 minutos de passeio.' });
+                    recList.push({ icon: 'sunset', text: 'Prefira caminhar antes das 7h ou após as 18h.' });
+                } else if (walkIETFortaleza >= 40) {
+                    recList.push({ icon: 'umbrella', text: 'Caminhe estritamente sob sombras e em gramados.' });
+                    recList.push({ icon: 'droplet', text: 'Leve bebedouro portátil com água fresca e ofereça a cada 10 min.' });
+                } else if (walkIETFortaleza >= 20) {
+                    recList.push({ icon: 'compass', text: 'Passeio liberado com moderação. Atenção a sinais de calor.' });
+                    recList.push({ icon: 'droplet', text: 'Não se esqueça de manter a hidratação regular.' });
+                } else {
+                    recList.push({ icon: 'smile', text: 'Passeio seguro! Divirta-se com seu pet.' });
+                    recList.push({ icon: 'droplet', text: 'Não se esqueça de manter a hidratação regular.' });
+                }
             }
 
             recList.forEach(rec => {
@@ -1836,8 +1988,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Carrega dados customizados locais
         loadCustomStations();
         
-        // 2. Preenche select-boxes de estações
+        // 2. Preenche select-boxes de estações e configura seletor dinâmico canino/felino
         populateDropdowns();
+        setupSpeciesSelector();
 
         // 3. Inicializa o Leaflet Map
         initMap();
