@@ -8,14 +8,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let isLiveAPI = false; // Indica se os dados estão vindo da API FastAPI local do observatório
     let isPlugfieldConnected = false; // Indica se a API Plugfield está ativa
 
-    // Definição das 11 Estações Meteorológicas Oficiais da Defesa Civil de Fortaleza
+    // Definição das 19 Estações Meteorológicas Oficiais da Defesa Civil de Fortaleza
     const officialStations = {
         'st-001': {
+            plugfieldId: '8642',
             name: 'DEFESA CIVIL - CENTRO',
             bairro: 'Centro',
             desc: 'Zona Comercial densa • Alto asfalto',
-            lat: -3.7275,
-            lng: -38.5270,
+            lat: -3.72335,
+            lng: -38.53774,
             tempOffset: 2.0,
             humidityOffset: -4,
             windOffset: 0.8,
@@ -23,11 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
             areas2km: ['Centro', 'Moura Brasil', 'Farias Brito', 'Jacarecanga', 'Benfica', 'José Bonifácio']
         },
         'st-002': {
+            plugfieldId: '9281',
             name: 'DEFESA CIVIL - BENFICA',
             bairro: 'Benfica',
             desc: 'Área universitária • Fluxo urbano',
-            lat: -3.7431,
-            lng: -38.5401,
+            lat: -3.74816,
+            lng: -38.53809,
             tempOffset: 1.2,
             humidityOffset: -2,
             windOffset: 1.6,
@@ -35,11 +37,12 @@ document.addEventListener('DOMContentLoaded', () => {
             areas2km: ['Benfica', 'Farias Brito', 'Damas', 'Jardim América', 'Bom Futuro', 'Montese']
         },
         'st-003': {
+            plugfieldId: '9134',
             name: 'DEFESA CIVIL - CJ ESPERANÇA',
             bairro: 'Conjunto Esperança',
             desc: 'Área residencial periférica',
-            lat: -3.8115,
-            lng: -38.5670,
+            lat: -3.81478,
+            lng: -38.58994,
             tempOffset: 0.8,
             humidityOffset: 2,
             windOffset: 2.2,
@@ -47,11 +50,12 @@ document.addEventListener('DOMContentLoaded', () => {
             areas2km: ['Conjunto Esperança', 'Mondubim', 'Parque Prefeito José Walter', 'Planalto Ayrton Senna']
         },
         'st-004': {
+            plugfieldId: '9282',
             name: 'DEFESA CIVIL - GRANJA LISBOA',
             bairro: 'Granja Lisboa',
             desc: 'Zona periférica • Baixa vegetação',
-            lat: -3.7915,
-            lng: -38.6045,
+            lat: -3.78992,
+            lng: -38.61909,
             tempOffset: 1.8,
             humidityOffset: 1,
             windOffset: 1.4,
@@ -59,11 +63,12 @@ document.addEventListener('DOMContentLoaded', () => {
             areas2km: ['Granja Lisboa', 'Granja Portugal', 'Bom Jardim', 'Siqueira', 'Conjunto Ceará']
         },
         'st-005': {
+            plugfieldId: '9249',
             name: 'DEFESA CIVIL - JANGURUSSU',
             bairro: 'Jangurussu',
             desc: 'Área residencial dispersa',
-            lat: -3.8340,
-            lng: -38.5140,
+            lat: -3.83888,
+            lng: -38.52270,
             tempOffset: 1.0,
             humidityOffset: 3,
             windOffset: 2.0,
@@ -71,11 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
             areas2km: ['Jangurussu', 'Conjunto Palmeiras', 'Ancuri', 'Pedras', 'Messejana']
         },
         'st-006': {
+            plugfieldId: '9169',
             name: 'DEFESA CIVIL - MESSEJANA',
             bairro: 'Messejana',
             desc: 'Centro secundário urbano',
-            lat: -3.8270,
-            lng: -38.4980,
+            lat: -3.82569,
+            lng: -38.48544,
             tempOffset: 1.1,
             humidityOffset: 1,
             windOffset: 2.4,
@@ -83,11 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
             areas2km: ['Messejana', 'Cambeba', 'Paupina', 'Curió', 'Guajeru', 'Coaçu', 'Lagoa Redonda']
         },
         'st-007': {
+            plugfieldId: '8836',
             name: 'DEFESA CIVIL - MONTESE',
             bairro: 'Montese',
             desc: 'Bairro comercial tradicional',
-            lat: -3.7650,
-            lng: -38.5520,
+            lat: -3.77282,
+            lng: -38.55832,
             tempOffset: 1.5,
             humidityOffset: -2,
             windOffset: 1.2,
@@ -95,11 +102,12 @@ document.addEventListener('DOMContentLoaded', () => {
             areas2km: ['Montese', 'Itaoca', 'Vila União', 'Parangaba', 'Damas', 'Aeroporto', 'Serrinha']
         },
         'st-008': {
+            plugfieldId: '9137',
             name: 'DEFESA CIVIL - MUCURIPE',
             bairro: 'Mucuripe',
             desc: 'Orla costeira • Brisa constante',
-            lat: -3.7240,
-            lng: -38.4770,
+            lat: -3.72620,
+            lng: -38.48392,
             tempOffset: -1.0,
             humidityOffset: 8,
             windOffset: 6.2,
@@ -107,11 +115,12 @@ document.addEventListener('DOMContentLoaded', () => {
             areas2km: ['Mucuripe', 'Meireles', 'Praia de Iracema', 'Varjota', 'Aldeota', 'Vicente Pinzón']
         },
         'st-009': {
+            plugfieldId: '8869',
             name: 'DEFESA CIVIL - VILA VELHA',
             bairro: 'Vila Velha',
             desc: 'Zona Oeste residencial',
-            lat: -3.7270,
-            lng: -38.5880,
+            lat: -3.71419,
+            lng: -38.59702,
             tempOffset: 0.9,
             humidityOffset: 4,
             windOffset: 3.5,
@@ -119,11 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
             areas2km: ['Vila Velha', 'Barra do Ceará', 'Jardim Guanabara', 'Quintino Cunha', 'Cristo Redentor']
         },
         'st-010': {
-            name: 'DEFESA CIVIL-GUARARAPES',
+            plugfieldId: '9242',
+            name: 'DEFESA CIVIL - GUARARAPES',
             bairro: 'Guararapes',
             desc: 'Canyons prediais • Concentração de calor',
-            lat: -3.7620,
-            lng: -38.4840,
+            lat: -3.76059,
+            lng: -38.48383,
             tempOffset: 1.3,
             humidityOffset: -1,
             windOffset: 1.5,
@@ -131,16 +141,121 @@ document.addEventListener('DOMContentLoaded', () => {
             areas2km: ['Guararapes', 'Cocó', 'Luciano Cavalcante', 'Aldeota', 'Salinas', 'Edson Queiroz']
         },
         'st-011': {
+            plugfieldId: '3318',
             name: 'DEFESA CIVIL - DOM LUSTOSA',
             bairro: 'Dom Lustosa',
             desc: 'Zona residencial mista',
-            lat: -3.7554,
-            lng: -38.5832,
+            lat: -3.74902,
+            lng: -38.58781,
             tempOffset: 0.8,
             humidityOffset: 3,
             windOffset: 1.8,
             defaultSurface: 'concrete',
             areas2km: ['Dom Lustosa', 'Henrique Jorge', 'Pici', 'Autran Nunes', 'João XXIII', 'Bela Vista']
+        },
+        'st-012': {
+            plugfieldId: '12038',
+            name: 'DEFESA CIVIL - AEROLÂNDIA',
+            bairro: 'Aerolândia',
+            desc: 'Corredor viário BR-116 • Adensamento urbano',
+            lat: -3.76474,
+            lng: -38.50987,
+            tempOffset: 1.4,
+            humidityOffset: -1,
+            windOffset: 1.5,
+            defaultSurface: 'asphalt',
+            areas2km: ['Aerolândia', 'Alto da Balança', 'Tauape', 'Salinas', 'Dionísio Torres', 'Jardim das Oliveiras']
+        },
+        'st-013': {
+            plugfieldId: '12136',
+            name: 'DEFESA CIVIL - ÁLVARO WEYNE',
+            bairro: 'Álvaro Weyne',
+            desc: 'Zona Oeste densa • Proximidade litorânea',
+            lat: -3.71690,
+            lng: -38.57134,
+            tempOffset: 1.3,
+            humidityOffset: 0,
+            windOffset: 2.0,
+            defaultSurface: 'concrete',
+            areas2km: ['Álvaro Weyne', 'Floresta', 'Ellery', 'Presidente Kennedy', 'Jardim Iracema', 'Cristo Redentor', 'Carlito Pamplona']
+        },
+        'st-014': {
+            plugfieldId: '12041',
+            name: 'DEFESA CIVIL - CASTELÃO',
+            bairro: 'Castelão',
+            desc: 'Polo esportivo e viário • Grande área impermeabilizada',
+            lat: -3.80985,
+            lng: -38.51640,
+            tempOffset: 1.2,
+            humidityOffset: 1,
+            windOffset: 2.1,
+            defaultSurface: 'asphalt',
+            areas2km: ['Boa Vista-Castelão', 'Barroso', 'Cajazeiras', 'Passaré', 'Dias Macêdo', 'Parque Iracema']
+        },
+        'st-015': {
+            plugfieldId: '12124',
+            name: 'DEFESA CIVIL - LAGOA REDONDA',
+            bairro: 'Lagoa Redonda',
+            desc: 'Zona Sudeste • Área residencial e lagoas',
+            lat: -3.82006,
+            lng: -38.45237,
+            tempOffset: 0.4,
+            humidityOffset: 4,
+            windOffset: 3.0,
+            defaultSurface: 'concrete',
+            areas2km: ['Lagoa Redonda', 'José de Alencar', 'Curió', 'Sapiranga-Coité', 'Guajeru', 'Sabiaguaba']
+        },
+        'st-016': {
+            plugfieldId: '12176',
+            name: 'DEFESA CIVIL - MONDUBIM',
+            bairro: 'Mondubim',
+            desc: 'Zona Sudoeste • Malha residencial adensada',
+            lat: -3.82015,
+            lng: -38.57113,
+            tempOffset: 1.0,
+            humidityOffset: 2,
+            windOffset: 2.0,
+            defaultSurface: 'concrete',
+            areas2km: ['Mondubim', 'Planalto Ayrton Senna', 'Aracapé', 'Novo Mondubim', 'Jardim Cearense', 'Manoel Sátiro']
+        },
+        'st-017': {
+            plugfieldId: '12119',
+            name: 'DEFESA CIVIL - PAUPINA',
+            bairro: 'Paupina',
+            desc: 'Extremo Sul • Transição urbano-periurbana',
+            lat: -3.85719,
+            lng: -38.48869,
+            tempOffset: 0.9,
+            humidityOffset: 2,
+            windOffset: 2.3,
+            defaultSurface: 'concrete',
+            areas2km: ['Paupina', 'São Bento', 'Parque Santa Maria', 'Coaçu', 'Ancuri', 'Guajeru']
+        },
+        'st-018': {
+            plugfieldId: '12180',
+            name: 'DEFESA CIVIL - PF / CAÇA E PESCA',
+            bairro: 'PF / Caça e Pesca',
+            desc: 'Faixa litorânea Leste • Ventilação costeira',
+            lat: -3.74479,
+            lng: -38.45430,
+            tempOffset: -0.7,
+            humidityOffset: 6,
+            windOffset: 4.5,
+            defaultSurface: 'concrete',
+            areas2km: ['Praia do Futuro I', 'De Lourdes', 'Papicu', 'Manuel Dias Branco', 'Cidade 2000', 'Vicente Pinzón']
+        },
+        'st-019': {
+            plugfieldId: '12086',
+            name: 'DEFESA CIVIL - PF / DE LOURDES',
+            bairro: 'PF / De Lourdes',
+            desc: 'Orla Praia do Futuro • Brisa marítima intensa',
+            lat: -3.76515,
+            lng: -38.44077,
+            tempOffset: -0.6,
+            humidityOffset: 6,
+            windOffset: 4.2,
+            defaultSurface: 'concrete',
+            areas2km: ['Praia do Futuro II', 'Manuel Dias Branco', 'Edson Queiroz', 'Praia do Futuro I', 'Cidade 2000', 'De Lourdes']
         }
     };
 
@@ -442,10 +557,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const plugfieldData = plugfieldWeatherData[stationId];
             const simulated = getSimulatedWeather(stationId, hour);
 
-            const temperature = plugfieldData.temperature !== undefined ? parseFloat(plugfieldData.temperature.toFixed(1)) : simulated.temperature;
-            const humidity = plugfieldData.humidity !== undefined ? parseInt(plugfieldData.humidity) : simulated.humidity;
-            const wind = plugfieldData.windSpeed !== undefined ? parseFloat((plugfieldData.windSpeed / 3.6).toFixed(1)) : simulated.wind; // km/h para m/s
-            const radiation = plugfieldData.uvIndex !== undefined ? Math.min(1000, plugfieldData.uvIndex * 100) : simulated.radiation;
+            const temperature = plugfieldData.temperature !== undefined && plugfieldData.temperature !== null
+                ? parseFloat(Number(plugfieldData.temperature).toFixed(1)) : simulated.temperature;
+            const humidity = plugfieldData.humidity !== undefined && plugfieldData.humidity !== null
+                ? parseInt(plugfieldData.humidity, 10) : simulated.humidity;
+            const wind = plugfieldData.windSpeed !== undefined && plugfieldData.windSpeed !== null
+                ? parseFloat((Number(plugfieldData.windSpeed) / 3.6).toFixed(1)) : simulated.wind; // km/h para m/s
+            const radiation = plugfieldData.radiation !== undefined && plugfieldData.radiation !== null
+                ? parseFloat(Number(plugfieldData.radiation).toFixed(1))
+                : (plugfieldData.uvIndex !== undefined && plugfieldData.uvIndex !== null ? Math.min(1000, plugfieldData.uvIndex * 100) : simulated.radiation);
 
             const tempSurface = estimateSurfaceTemp(temperature, radiation, wind, config.defaultSurface || 'concrete');
             const ietPet = calculateIETPet(temperature, humidity, tempSurface, wind, radiation);
@@ -473,10 +593,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const apiData = apiWeatherData[stationId];
             const simulated = getSimulatedWeather(stationId, hour);
 
+            // Se a estação está sem telemetria (qc_flag === 2 / ausente), usar simulação estrutural até retomar transmissão
+            if (apiData.qc_flag === 2) {
+                return simulated;
+            }
+
             // Mapeia temperatura_c (real API) ou ultima_medicao (simulated API)
             let temperature = simulated.temperature;
             if (apiData.temperatura_c !== undefined && apiData.temperatura_c !== null) {
-                temperature = parseFloat(apiData.temperatura_c.toFixed(1));
+                temperature = parseFloat(Number(apiData.temperatura_c).toFixed(1));
             } else if (apiData.ultima_medicao !== undefined && apiData.ultima_medicao !== null && apiData.ultima_medicao < 45) {
                 // No main_local.py, ultima_medicao é chuva. Usamos apenas se for abaixo de 45 (verossímil para temp Fortaleza)
                 // Caso contrário, mantemos a simulação de temperatura e usamos como chuva
@@ -504,7 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 icu,
                 ietPetFortaleza,
                 riskLevel: getRiskLevel(ietPetFortaleza),
-                isIoT: apiData.umidade !== undefined || apiData.vento !== undefined,
+                isIoT: apiData.qualidade_sinal !== 'simulado' && (apiData.umidade !== undefined || apiData.vento !== undefined),
                 rainAccum24h: apiData.chuva_24h || apiData.chuva_acumulada_24h || (apiData.ultima_medicao > 45 ? apiData.ultima_medicao : 0)
             };
         }
@@ -570,25 +695,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Retorna a temperatura de referência regional (Mucuripe - st-008) com resiliência de malha costeira
     function getReferenceTemperature(hour) {
-        // 1. Prioridade: Estação Mucuripe (st-008) via Plugfield com checagem de consistência física
-        if (isPlugfieldConnected && plugfieldWeatherData['st-008']) {
-            const dev = plugfieldWeatherData['st-008'];
-            if (dev.temperature !== undefined && dev.temperature >= 22 && dev.temperature <= 36) {
-                return parseFloat(dev.temperature.toFixed(1));
+        const coastalOrder = ['st-008', 'st-018', 'st-019', 'st-009']; // Mucuripe, PF/Caça e Pesca, PF/De Lourdes, Vila Velha
+
+        // 1. Prioridade: Malha costeira via Plugfield direto
+        if (isPlugfieldConnected) {
+            for (const stId of coastalOrder) {
+                const dev = plugfieldWeatherData[stId];
+                if (dev && dev.temperature !== undefined && dev.temperature !== null && dev.temperature >= 22 && dev.temperature <= 36) {
+                    return parseFloat(Number(dev.temperature).toFixed(1));
+                }
             }
         }
-        // 2. Prioridade: Estação Mucuripe via API Local do Observatório
-        if (isLiveAPI && apiWeatherData['st-008']) {
-            const apiData = apiWeatherData['st-008'];
-            if (apiData.temperatura_c !== undefined && apiData.temperatura_c >= 22 && apiData.temperatura_c <= 36) {
-                return parseFloat(apiData.temperatura_c.toFixed(1));
+        // 2. Prioridade: Malha costeira via API Serverless/Local do Observatório
+        if (isLiveAPI) {
+            for (const stId of coastalOrder) {
+                const apiData = apiWeatherData[stId];
+                if (apiData && apiData.qc_flag !== 2 && apiData.temperatura_c !== undefined && apiData.temperatura_c >= 22 && apiData.temperatura_c <= 36) {
+                    return parseFloat(Number(apiData.temperatura_c).toFixed(1));
+                }
             }
         }
-        // 3. Contingência Costeira: Estação alternativa de orla (Vila Velha - st-009) se Mucuripe estiver offline
-        if (isLiveAPI && apiWeatherData['st-009'] && apiWeatherData['st-009'].temperatura_c >= 22 && apiWeatherData['st-009'].temperatura_c <= 36) {
-            return parseFloat(apiWeatherData['st-009'].temperatura_c.toFixed(1));
-        }
-        // 4. Fallback Climatológico INMET para a orla de Fortaleza
+        // 3. Fallback Climatológico INMET para a orla de Fortaleza
         const baseTemp = 27.5 + 3.5 * Math.sin((hour - 8) * Math.PI / 12);
         return parseFloat((baseTemp - 1.0).toFixed(1));
     }
@@ -719,11 +846,37 @@ document.addEventListener('DOMContentLoaded', () => {
         extreme: { label: 'Extremo', class: 'badge-extreme', color: 'var(--color-extreme)', desc: 'Emergência Térmica! Risco iminente de óbito ou insolação.' }
     };
 
+    function normalizeText(str) {
+        return String(str || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
+    function matchStationId(sensorId, sensorNameOrBairro) {
+        const sid = sensorId !== undefined && sensorId !== null ? String(sensorId) : '';
+        // 1. Correspondência exata por ID Plugfield
+        if (sid) {
+            const byId = Object.keys(stations).find(id => stations[id].plugfieldId === sid);
+            if (byId) return byId;
+        }
+        // 2. Correspondência normalizada (sem acentos) por bairro ou nome
+        const normTarget = normalizeText(sensorNameOrBairro);
+        if (!normTarget) return null;
+
+        return Object.keys(stations).find(id => {
+            const localBairro = normalizeText(stations[id].bairro);
+            const localName = normalizeText(stations[id].name);
+            return normTarget.includes(localBairro) || localBairro.includes(normTarget) || normTarget.includes(localName);
+        }) || null;
+    }
+
     // --- CONEXÃO COM API AUTOMÁTICA (SERVERLESS / LOCAL FASTAPI) ---
     async function fetchLiveWeatherData() {
         try {
-            // Tenta primeiro a API Serverless local/relativa (que roda no Vercel com dados reais do Plugfield)
-            // Se falhar (ex: rodando localmente sem Vercel Dev), tenta o uvicorn local do Observatório (porta 8000)
+            // Tenta primeiro a API Serverless local/relativa (que roda no Vercel/Express com dados reais do Plugfield)
+            // Se falhar (ex: rodando localmente sem backend), tenta o uvicorn local do Observatório (porta 8000)
             let response;
             try {
                 response = await fetch('/api/sensores');
@@ -737,26 +890,54 @@ document.addEventListener('DOMContentLoaded', () => {
             const sensorList = await response.json();
             
             apiWeatherData = {};
+            let addedDynamicStation = false;
+
             sensorList.forEach(sensor => {
-                // Normaliza campos para suportar tanto simulated (main_local.py) quanto real DB (main.py)
-                const apiBairro = (sensor.sensor_bairro || sensor.bairro || '').toLowerCase();
-                
-                let matchedId = null;
-                Object.keys(stations).forEach(id => {
-                    const localBairro = stations[id].bairro.toLowerCase();
-                    if (apiBairro.includes(localBairro) || localBairro.includes(apiBairro)) {
-                        matchedId = id;
-                    }
-                });
+                // Normaliza campos para suportar tanto simulated (main_local.py) quanto real DB / Plugfield Serverless
+                const apiBairro = sensor.sensor_bairro || sensor.bairro || sensor.sensor_nome || '';
+                let matchedId = matchStationId(sensor.sensor_id, apiBairro);
+
+                // Descoberta dinâmica: se a Plugfield retornar uma nova estação ainda não cadastrada em officialStations
+                if (!matchedId && sensor.sensor_id && Number.isFinite(Number(sensor.lat)) && Number.isFinite(Number(sensor.lon))) {
+                    const dynamicId = `st-pf-${sensor.sensor_id}`;
+                    const cleanBairro = sensor.sensor_bairro || sensor.area_principal || `Estação ${sensor.sensor_id}`;
+                    stations[dynamicId] = {
+                        plugfieldId: String(sensor.sensor_id),
+                        name: sensor.sensor_nome || `DEFESA CIVIL - ${cleanBairro.toUpperCase()}`,
+                        bairro: cleanBairro,
+                        desc: 'Estação Automática Plugfield (Detecção Dinâmica)',
+                        lat: Number(sensor.lat),
+                        lng: Number(sensor.lon),
+                        tempOffset: 1.0,
+                        humidityOffset: 0,
+                        windOffset: 2.0,
+                        defaultSurface: 'concrete',
+                        areas2km: [sensor.area_principal || cleanBairro],
+                        isIoT: true
+                    };
+                    matchedId = dynamicId;
+                    addedDynamicStation = true;
+                }
 
                 if (matchedId) {
                     apiWeatherData[matchedId] = sensor;
+                    // Atualiza coordenadas reais da estação se válidas para Fortaleza
+                    const lat = Number(sensor.lat);
+                    const lon = Number(sensor.lon);
+                    if (Number.isFinite(lat) && Number.isFinite(lon) && lat >= -3.95 && lat <= -3.65 && lon >= -38.70 && lon <= -38.35) {
+                        stations[matchedId].lat = lat;
+                        stations[matchedId].lng = lon;
+                    }
                 }
             });
 
+            if (addedDynamicStation) {
+                populateDropdowns();
+            }
+
             isLiveAPI = true;
             updateConnectionLEDs();
-            console.log('[DCPET] Dados meteorológicos da API carregados com sucesso.');
+            console.log(`[DCPET] Dados meteorológicos da API carregados com sucesso (${Object.keys(apiWeatherData).length} estações).`);
         } catch (err) {
             isLiveAPI = false;
             updateConnectionLEDs();
@@ -854,7 +1035,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchPlugfieldDevices(token, apiKey) {
         logPlugfield('Buscando dispositivos meteorológicos cadastrados...');
-        const response = await fetch(`${PLUGFIELD_BASE_URL}/device?limit=50`, {
+        const response = await fetch(`${PLUGFIELD_BASE_URL}/device?limit=100`, {
             headers: {
                 'Authorization': token,
                 'x-api-key': apiKey
@@ -875,30 +1056,51 @@ document.addEventListener('DOMContentLoaded', () => {
             const devices = await fetchPlugfieldDevices(plugfieldAuth.accessToken, plugfieldAuth.apiKey);
             
             plugfieldWeatherData = {};
+            let addedDynamic = false;
             devices.forEach(dev => {
-                // Tenta associar à nossa malha de estações comparando nome
-                const devName = (dev.deviceName || dev.name || '').toLowerCase();
-                let matchedId = null;
-                
-                Object.keys(stations).forEach(id => {
-                    const localBairro = stations[id].bairro.toLowerCase();
-                    const localName = stations[id].name.toLowerCase();
-                    if (devName.includes(localBairro) || devName.includes(localName) || localBairro.includes(devName)) {
-                        matchedId = id;
-                    }
-                });
+                const rawName = dev.deviceName || dev.name || '';
+                let matchedId = matchStationId(dev.id, rawName);
 
-                if (matchedId && dev.dashboard) {
+                if (!matchedId && dev.id) {
+                    const lat = parseFloat(dev.latitude);
+                    const lon = parseFloat(dev.longitude);
+                    if (Number.isFinite(lat) && Number.isFinite(lon) && lat >= -3.95 && lat <= -3.65 && lon >= -38.70 && lon <= -38.35) {
+                        const cleanName = rawName.replace(/^(SERVIZI\s*-\s*)?(DEFESA\s+CIVIL|DCFOR)\s*[-–]?\s*/i, '').trim() || `Estação ${dev.id}`;
+                        matchedId = `st-pf-${dev.id}`;
+                        stations[matchedId] = {
+                            plugfieldId: String(dev.id),
+                            name: `DEFESA CIVIL - ${cleanName.toUpperCase()}`,
+                            bairro: cleanName,
+                            desc: 'Estação Automática Plugfield (Detecção Dinâmica)',
+                            lat,
+                            lng: lon,
+                            tempOffset: 1.0,
+                            humidityOffset: 0,
+                            windOffset: 2.0,
+                            defaultSurface: 'concrete',
+                            areas2km: [cleanName],
+                            isIoT: true
+                        };
+                        addedDynamic = true;
+                    }
+                }
+
+                if (matchedId && dev.dashboard && dev.dashboard.temp !== null && dev.dashboard.temp !== undefined) {
                     plugfieldWeatherData[matchedId] = {
                         temperature: dev.dashboard.temp,
                         humidity: dev.dashboard.humi,
                         windSpeed: dev.dashboard.wind,
+                        radiation: dev.dashboard.radiation,
                         rainAccum12h: dev.dashboard.rainDay,
                         uvIndex: dev.dashboard.uv
                     };
-                    logPlugfield(`Mapeado: "${dev.deviceName}" -> Estação ${stations[matchedId].name.replace('DEFESA CIVIL - ', '')}`);
+                    logPlugfield(`Mapeado: "${rawName}" -> Estação ${stations[matchedId].name.replace('DEFESA CIVIL - ', '')}`);
                 }
             });
+
+            if (addedDynamic) {
+                populateDropdowns();
+            }
 
             isPlugfieldConnected = true;
             updatePlugfieldUI(true);
@@ -2071,8 +2273,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Renderizar Colônias de rua
         renderColonies();
         
-        // Atualizar lista e cards
+        // Atualizar lista, mapa e cards com os dados reais da API
         updateStationsList();
+        renderMapElements();
         updateMetricsRow();
         updateCustomIoTList();
 
